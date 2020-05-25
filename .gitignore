@@ -1,0 +1,11 @@
+__pycache__/
+basketball_chen_not/
+basketballVideoAnalysis-stephanj/
+football_andres_not/
+Mask_RCNN-matterport/
+object-detection-arunponn/
+pedestrian-detection/
+
+
+*.weights
+*.mp4
