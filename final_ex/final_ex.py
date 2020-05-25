@@ -12,6 +12,63 @@ def show_image(msg, img):
             break
     cv2.destroyWindow(msg)
 
+def get_color_mask(hsv):
+
+    # lower mask (0-10)
+    lower_color = np.array([0, 50, 50])
+    upper_color = np.array([10, 255, 255])
+    mask0 = cv2.inRange(hsv, lower_color, upper_color)
+
+    # upper mask (170-180)
+    lower_red = np.array([170, 50, 50])
+    upper_red = np.array([180, 255, 255])
+    mask1 = cv2.inRange(hsv, lower_color, upper_color)
+
+    # join my masks
+    return mask0 + mask1
+
+def get_player_color(image, box):
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # show_image('',image)
+
+    # If player has blue jersey
+    # blue range
+    lower_red = np.array([105, 100, 10])
+    upper_red = np.array([135, 255, 255])
+    mask0 = cv2.inRange(hsv, lower_red, upper_red)
+
+    res1 = cv2.bitwise_and(image, image, mask=mask0)
+    res1 = cv2.cvtColor(res1, cv2.COLOR_HSV2BGR)
+    res1 = cv2.cvtColor(res1, cv2.COLOR_BGR2GRAY)
+    nzCountblue = cv2.countNonZero(res1)
+
+    # If player has red jersy
+    # lower red mask (0-10)
+    lower_red = np.array([0, 50, 50])
+    upper_red = np.array([10, 255, 255])
+    mask0 = cv2.inRange(hsv, lower_red, upper_red)
+
+    # upper red mask (170-180)
+    lower_red = np.array([170, 50, 50])
+    upper_red = np.array([180, 255, 255])
+    mask1 = cv2.inRange(hsv, lower_red, upper_red)
+
+    # join my masks
+    mask2 = mask0 + mask1
+    res2 = cv2.bitwise_and(image, image, mask=mask2)
+    res2 = cv2.cvtColor(res2, cv2.COLOR_HSV2BGR)
+    res2 = cv2.cvtColor(res2, cv2.COLOR_BGR2GRAY)
+    nzCountred = cv2.countNonZero(res2)
+
+    if nzCountblue >=40:
+        return 1
+    if nzCountred >= 40:
+        return 2
+    else:
+        return 0
+
 input_file = "cutvideo.mp4"
 output_file = "cutvideo_out.avi"
 labels_file = "yolov3.txt"
@@ -20,6 +77,8 @@ weights_file = "yolov3.weights"
 desired_conf = .5
 desired_thres = .3
 
+CLASS_PERSON = 0
+CLASS_BALL = 32
 
 # load the COCO class labels our YOLO model was trained on
 LABELS = open(labels_file).read().strip().split("\n")
@@ -66,25 +125,31 @@ while success:
             scores = detection[5:]
             classID = np.argmax(scores)
             confidence = scores[classID]
-            # filter out weak predictions by ensuring the detected
-            # probability is greater than the minimum probability
+
             if confidence > desired_conf:
-                # scale the bounding box coordinates back relative to
-                # the size of the image, keeping in mind that YOLO
-                # actually returns the center (x, y)-coordinates of
-                # the bounding box followed by the boxes' width and
-                # height
+
+                if classID != CLASS_PERSON and classID != CLASS_BALL:
+                    continue
+
                 box = detection[0:4] * np.array([W, H, W, H])
                 (centerX, centerY, width, height) = box.astype("int")
-                # use the center (x, y)-coordinates to derive the top
-                # and and left corner of the bounding box
+
                 x = int(centerX - (width / 2))
                 y = int(centerY - (height / 2))
-                # update our list of bounding box coordinates,
-                # confidences, and class IDs
-                boxes.append([x, y, int(width), int(height)])
-                confidences.append(float(confidence))
-                classIDs.append(classID)
+
+                if x < 0 or y < 0:
+                    continue
+
+                player_img = frame[y:y + int(height), x:x + int(width)]
+
+                color = get_player_color(player_img, box)
+
+                if color != 0:
+                    boxes.append([x, y, int(width), int(height)])
+                    confidences.append(float(confidence))
+                    classIDs.append(classID)
+
+
 
     # apply non-maxima suppression to suppress weak, overlapping
     # bounding boxes
