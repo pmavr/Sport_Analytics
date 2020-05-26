@@ -12,59 +12,29 @@ def show_image(msg, img):
             break
     cv2.destroyWindow(msg)
 
-def get_color_mask(hsv):
-
-    # lower mask (0-10)
-    lower_color = np.array([0, 50, 50])
-    upper_color = np.array([10, 255, 255])
-    mask0 = cv2.inRange(hsv, lower_color, upper_color)
-
-    # upper mask (170-180)
-    lower_red = np.array([170, 50, 50])
-    upper_red = np.array([180, 255, 255])
-    mask1 = cv2.inRange(hsv, lower_color, upper_color)
-
-    # join my masks
-    return mask0 + mask1
+def color_intensity(img, lower_range, upper_range):
+    lower_color = np.array(lower_range)
+    upper_color = np.array(upper_range)
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_color, upper_color)
+    res = cv2.bitwise_and(img, img, mask=mask)
+    res = cv2.cvtColor(res, cv2.COLOR_HSV2BGR)
+    res = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+    return cv2.countNonZero(res)
 
 def get_player_color(image, box):
 
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
     # show_image('',image)
 
-    # If player has blue jersey
-    # blue range
-    lower_red = np.array([105, 100, 10])
-    upper_red = np.array([135, 255, 255])
-    mask0 = cv2.inRange(hsv, lower_red, upper_red)
+    green_pixels = color_intensity(image, [45, 40, 40], [50, 255, 255])
 
-    res1 = cv2.bitwise_and(image, image, mask=mask0)
-    res1 = cv2.cvtColor(res1, cv2.COLOR_HSV2BGR)
-    res1 = cv2.cvtColor(res1, cv2.COLOR_BGR2GRAY)
-    nzCountblue = cv2.countNonZero(res1)
+    blue_pixels = color_intensity(image, [105, 10, 0], [135, 255, 255])
 
-    # If player has red jersy
-    # lower red mask (0-10)
-    lower_red = np.array([0, 50, 50])
-    upper_red = np.array([10, 255, 255])
-    mask0 = cv2.inRange(hsv, lower_red, upper_red)
+    red_pixels = color_intensity(image, [0, 50, 50], [10, 255, 255])
 
-    # upper red mask (170-180)
-    lower_red = np.array([170, 50, 50])
-    upper_red = np.array([180, 255, 255])
-    mask1 = cv2.inRange(hsv, lower_red, upper_red)
-
-    # join my masks
-    mask2 = mask0 + mask1
-    res2 = cv2.bitwise_and(image, image, mask=mask2)
-    res2 = cv2.cvtColor(res2, cv2.COLOR_HSV2BGR)
-    res2 = cv2.cvtColor(res2, cv2.COLOR_BGR2GRAY)
-    nzCountred = cv2.countNonZero(res2)
-
-    if nzCountblue >=40:
+    if blue_pixels >= 50 and green_pixels >= 50:
         return 1
-    if nzCountred >= 40:
+    if red_pixels >= 50 and green_pixels >= 50:
         return 2
     else:
         return 0
@@ -96,6 +66,7 @@ ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 vs = cv2.VideoCapture(input_file)
 
 success, frame = vs.read()
+writer = None
 
 while success:
 
@@ -169,14 +140,18 @@ while success:
             cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
     cv2.imshow('Match Detection', frame)
-    # time.sleep(0.05)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
     success, frame = vs.read()
 
-
-
+    # check if the video writer is None
+#     if writer is None:
+#         fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+#         writer = cv2.VideoWriter(output_file, fourcc, 30, (frame.shape[1], frame.shape[0]), True)
+#     writer.write(frame)
+#
+# writer.release()
 
 print("[INFO] cleaning up...")
 vs.release()

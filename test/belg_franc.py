@@ -11,6 +11,16 @@ def showImage(msg, img):
             break
     cv2.destroyWindow(msg)
 
+def color_intensity(img, lower_range, upper_range):
+    lower_color = np.array(lower_range)
+    upper_color = np.array(upper_range)
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_color, upper_color)
+    res = cv2.bitwise_and(img, img, mask=mask)
+    res = cv2.cvtColor(res, cv2.COLOR_HSV2BGR)
+    res = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+    return cv2.countNonZero(res)
+
 
 # Reading the video
 vidcap = cv2.VideoCapture('cutvideo.mp4')
@@ -66,31 +76,23 @@ while success:
             if (w > 15 and h >= 15):
                 idx = idx + 1
                 player_img = image[y:y + h, x:x + w]
-                player_hsv = cv2.cvtColor(player_img, cv2.COLOR_BGR2HSV)
-                # If player has blue jersy
-                mask1 = cv2.inRange(player_hsv, lower_blue, upper_blue)
-                res1 = cv2.bitwise_and(player_img, player_img, mask=mask1)
-                res1 = cv2.cvtColor(res1, cv2.COLOR_HSV2BGR)
-                res1 = cv2.cvtColor(res1, cv2.COLOR_BGR2GRAY)
-                nzCount = cv2.countNonZero(res1)
+
+                green_pixels = color_intensity(image, [45, 40, 40], [50, 255, 255])
+
+                blue_pixels = color_intensity(player_img, [105, 10, 0], [135, 255, 255])
                 # If player has red jersy
-                mask2 = cv2.inRange(player_hsv, lower_red, upper_red)
-                res2 = cv2.bitwise_and(player_img, player_img, mask=mask2)
-                res2 = cv2.cvtColor(res2, cv2.COLOR_HSV2BGR)
-                res2 = cv2.cvtColor(res2, cv2.COLOR_BGR2GRAY)
-                nzCountred = cv2.countNonZero(res2)
-                if (nzCount >= 20):
+
+                red_pixels = color_intensity(player_img, [0, 50, 50], [10, 255, 255])
+
+                if blue_pixels >= 50 and green_pixels >= 50:
                     # Mark blue jersy players as france
                     cv2.putText(image, 'France', (x - 2, y - 2), font, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
                     cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 3)
-                else:
-                    pass
-                if (nzCountred >= 20):
+                if red_pixels >= 50 and green_pixels >= 50:
                     # Mark red jersy players as belgium
                     cv2.putText(image, 'Belgium', (x - 2, y - 2), font, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
                     cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 3)
-                else:
-                    pass
+
         if ((h >= 1 and w >= 1) and (h <= 30 and w <= 30)):
             player_img = image[y:y + h, x:x + w]
 
