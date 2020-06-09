@@ -1,6 +1,6 @@
 import numpy as np
-import time
 import cv2
+from auxiliary import ColorClusters as cc
 
 
 def show_image(img, msg=''):
@@ -47,6 +47,7 @@ def extract_objects(image, layer_outputs):
     return boxes, confidences, classIDs
 
 
+
 # input_file = "cutvideo.mp4"
 # input_file = "chelsea_manchester.mp4"
 # input_file = "clips/olympiakos_panaitwlikos.mp4"
@@ -59,9 +60,9 @@ team1_mask = ([25, 125, 125], [35, 255, 255])
 team2_mask = ([90, 50, 0], [135, 255, 255])
 
 output_file = "cutvideo_out.avi"
-labels_file = "yolov3.txt"
-config_file = "yolov3.cfg"
-weights_file = "yolov3.weights"
+labels_file = "../yolo_files/yolov3.txt"
+config_file = "../yolo_files/yolov3.cfg"
+weights_file = "../yolo_files/yolov3.weights"
 desired_conf = .5
 desired_thres = .3
 
@@ -86,11 +87,20 @@ vs = cv2.VideoCapture(input_file)
 
 success, frame = vs.read()
 
+blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (416, 416), swapRB=True, crop=False)
+yolo.setInput(blob)
+output = yolo.forward(layer_names)
+
+box_list, _, _ = extract_objects(frame, output)
+imgs = [frame[b[0], b[1], b[0]+b[2], b[1]+b[3]] for b in box_list]
+cc.train_clustering()
+
+success, frame = vs.read()
+
 while success:
 
     blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (416, 416), swapRB=True, crop=False)
     yolo.setInput(blob)
-
     output = yolo.forward(layer_names)
 
     box_list, conf_list, class_list = extract_objects(frame, output)
