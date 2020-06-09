@@ -2,6 +2,7 @@ import numpy as np
 import time
 import cv2
 
+
 def show_image(img, msg=''):
     cv2.imshow(msg, img)
     while 1:
@@ -12,7 +13,6 @@ def show_image(img, msg=''):
 
 
 def extract_objects(image, layer_outputs):
-
     h, w = image.shape[:2]
 
     boxes = []
@@ -46,6 +46,7 @@ def extract_objects(image, layer_outputs):
 
     return boxes, confidences, classIDs
 
+
 # input_file = "cutvideo.mp4"
 # input_file = "chelsea_manchester.mp4"
 # input_file = "clips/olympiakos_panaitwlikos.mp4"
@@ -67,9 +68,9 @@ desired_thres = .3
 CLASS_PERSON = 0
 CLASS_BALL = 32
 
-# load the COCO class labels our YOLO model was trained on
+
 LABELS = open(labels_file).read().strip().split("\n")
-# initialize a list of colors to represent each possible class label
+
 np.random.seed(42)
 COLORS = np.random.randint(0, 255, size=(len(LABELS), 3), dtype="uint8")
 
@@ -78,21 +79,12 @@ yolo = cv2.dnn.readNetFromDarknet(config_file, weights_file)
 yolo.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 yolo.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
-net = cv2.dnn.readNetFromTensorflow(weightsPath, configPath)
-
 layer_names = yolo.getLayerNames()
 layer_names = [layer_names[i[0] - 1] for i in yolo.getUnconnectedOutLayers()]
 
-# initialize the video stream, pointer to output video file, and
-# frame dimensions
 vs = cv2.VideoCapture(input_file)
 
 success, frame = vs.read()
-# frame  = cv2.imread('FA CUP FIELD LINES IV.jpg')
-# success = True
-writer = None
-
-
 
 while success:
 
@@ -106,14 +98,11 @@ while success:
     non_overlapping_boxes_IDs = cv2.dnn.NMSBoxes(box_list, conf_list, desired_conf, desired_thres)
 
     if len(non_overlapping_boxes_IDs) > 0:
-        # loop over the indexes we are keeping
         for i in non_overlapping_boxes_IDs.flatten():
-            # extract the bounding box coordinates
+
             (x, y) = (box_list[i][0], box_list[i][1])
             (w, h) = (box_list[i][2], box_list[i][3])
-            # draw a bounding box rectangle and label on the frame
             color = [int(c) for c in COLORS[class_list[i]]]
-
             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
             text = "{}: {:.4f}".format(LABELS[class_list[i]], conf_list[i])
             cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
@@ -122,18 +111,8 @@ while success:
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-
-    # check if the video writer is None
-    # if writer is None:
-    #     fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-    #     writer = cv2.VideoWriter(output_file, fourcc, 30, (frame.shape[1], frame.shape[0]), True)
-    # writer.write(frame)
-
     success, frame = vs.read()
 
-
-
 print("[INFO] cleaning up...")
-# writer.release()
 vs.release()
 cv2.destroyAllWindows()
