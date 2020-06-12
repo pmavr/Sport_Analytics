@@ -112,9 +112,11 @@ for i in imgs:
 
 team_predictor, team_colors = cc.train_clustering(imgs, n_clusters=2)
 
-plot_clusters(team_colors, team_predictor.labels_, n_clusters=2)
+# plot_clusters(team_colors, team_predictor.labels_, n_clusters=2)
 
-
+something = cc.predict_team(i, team_predictor, n_clusters=2)
+print('Labels: {}'.format(team_predictor.labels_))
+print('Predicted label: {}'.format(something))
 success, frame = vs.read()
 
 while success:
