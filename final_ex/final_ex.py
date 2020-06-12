@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 from auxiliary import ColorClusters as cc
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def show_image(img, msg=''):
@@ -11,6 +13,14 @@ def show_image(img, msg=''):
             break
     cv2.destroyWindow(msg)
 
+def plot_clusters(clrs, labels, n_clusters=2):
+    print('[INFO] Plot dominant object colors')
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 125, 125), (125, 0, 125)]
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    for label, pix in zip(labels, clrs):
+        ax.scatter(pix[0], pix[1], pix[2], color=cc.rgb_to_hex(colors[label]))
+    plt.show()
 
 def extract_objects(image, layer_outputs):
     h, w = image.shape[:2]
@@ -47,7 +57,6 @@ def extract_objects(image, layer_outputs):
     return boxes, confidences, classIDs
 
 
-
 # input_file = "cutvideo.mp4"
 # input_file = "chelsea_manchester.mp4"
 # input_file = "clips/olympiakos_panaitwlikos.mp4"
@@ -69,13 +78,12 @@ desired_thres = .3
 CLASS_PERSON = 0
 CLASS_BALL = 32
 
-
 LABELS = open(labels_file).read().strip().split("\n")
 
 np.random.seed(42)
 COLORS = np.random.randint(0, 255, size=(len(LABELS), 3), dtype="uint8")
 
-print("[INFO] loading YOLO from disk...")
+print("[INFO] Loading YOLO from disk...")
 yolo = cv2.dnn.readNetFromDarknet(config_file, weights_file)
 yolo.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 yolo.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
@@ -84,16 +92,28 @@ layer_names = yolo.getLayerNames()
 layer_names = [layer_names[i[0] - 1] for i in yolo.getUnconnectedOutLayers()]
 
 vs = cv2.VideoCapture(input_file)
+imgs = []
 
-success, frame = vs.read()
+for j in range(2):
+    success, frame = vs.read()
 
-blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (416, 416), swapRB=True, crop=False)
-yolo.setInput(blob)
-output = yolo.forward(layer_names)
+    blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (416, 416), swapRB=True, crop=False)
+    yolo.setInput(blob)
+    output = yolo.forward(layer_names)
 
-box_list, _, _ = extract_objects(frame, output)
-imgs = [frame[b[0], b[1], b[0]+b[2], b[1]+b[3]] for b in box_list]
-cc.train_clustering()
+    box_list, _, _ = extract_objects(frame, output)
+    for b in box_list:
+        imgs.append(frame[b[1]:b[1] + b[3], b[0]:b[0] + b[2]])
+
+h = 0
+for i in imgs:
+    cv2.imwrite('../tmp/{}.jpg'.format(h), i)
+    h += 1
+
+team_predictor, team_colors = cc.train_clustering(imgs, n_clusters=2)
+
+plot_clusters(team_colors, team_predictor.labels_, n_clusters=2)
+
 
 success, frame = vs.read()
 
@@ -109,7 +129,6 @@ while success:
 
     if len(non_overlapping_boxes_IDs) > 0:
         for i in non_overlapping_boxes_IDs.flatten():
-
             (x, y) = (box_list[i][0], box_list[i][1])
             (w, h) = (box_list[i][2], box_list[i][3])
             color = [int(c) for c in COLORS[class_list[i]]]

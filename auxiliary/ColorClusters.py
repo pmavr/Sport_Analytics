@@ -64,8 +64,26 @@ def rgb_to_hsv(r, g, b):
     return [hsv_colors[0][0][0], hsv_colors[0][0][1], hsv_colors[0][0][2]]
 
 
-def train_clustering(imgs):
-    images = [cv2.imread(img) for img in imgs]
+def train_clustering(imgs, n_clusters=2):
+    print('[INFO] Train team predictor...')
+    filtered_images = [remove_green(image) for image in imgs]
+    clusters = 2
+    dominant_colors = []
+    for filtered_image in filtered_images:
+        dc = ColorClusters(filtered_image, clusters)
+        colors = dc.colorClusters()
+        for c in colors:
+            if c[0] < 30 and c[1] < 30 and c[2] < 30:
+                continue
+            dominant_colors.append(c)
+    hsv_colors = [rgb_to_hsv(c[0], c[1], c[2]) for c in dominant_colors]
+
+    # predictor = AgglomerativeClustering(n_clusters=clusters, linkage="average").fit(hsv_colors)
+    predictor = KMeans(n_clusters=n_clusters).fit(hsv_colors)
+    return predictor, dominant_colors
+
+def predict(predictor, img):
+
     filtered_images = [remove_green(image) for image in images]
     clusters = 2
     dominant_colors = []
@@ -78,5 +96,5 @@ def train_clustering(imgs):
             dominant_colors.append(c)
     hsv_colors = [rgb_to_hsv(c[0], c[1], c[2]) for c in dominant_colors]
 
-    predictor = AgglomerativeClustering(n_clusters=3, linkage="average").fit(hsv_colors)
+    predictor = KMeans(n_clusters=clusters).fit(hsv_colors)
     return predictor, dominant_colors
