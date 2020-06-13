@@ -41,6 +41,9 @@ class ColorClusters:
         ax = Axes3D(fig)
         for label, pix in zip(self.LABELS, self.IMAGE):
             ax.scatter(pix[0], pix[1], pix[2], color=rgb_to_hex(self.COLORS[label]))
+        ax.set_xlabel('red')
+        ax.set_ylabel('green')
+        ax.set_zlabel('blue')
         plt.show()
 
 
@@ -73,13 +76,14 @@ def train_clustering(imgs, n_clusters=2):
         dc = ColorClusters(filtered_image, clusters)
         colors = dc.colorClusters()
         for c in colors:
-            if c[0] < 30 and c[1] < 30 and c[2] < 30:
-                continue
-            dominant_colors.append(c)
-    hsv_colors = [rgb_to_hsv(c[0], c[1], c[2]) for c in dominant_colors]
+            col = rgb_to_hsv(c[0], c[1], c[2])
+            if col[0] > 10 and col[2] > 100:
+                dominant_colors.append(col)
+    # hsv_colors = [rgb_to_hsv(c[0], c[1], c[2]) for c in dominant_colors]
 
     # predictor = AgglomerativeClustering(n_clusters=clusters, linkage="average").fit(hsv_colors)
-    predictor = KMeans(n_clusters=n_clusters).fit(hsv_colors)
+    # predictor = KMeans(n_clusters=n_clusters).fit(hsv_colors)
+    predictor = KMeans(n_clusters=n_clusters).fit(dominant_colors)
     return predictor, dominant_colors
 
 
@@ -90,10 +94,13 @@ def predict_team(image, predictor, n_clusters=2):
     dc = ColorClusters(filtered_image, n_clusters)
     colors = dc.colorClusters()
     for c in colors:
-        if c[0] < 30 and c[1] < 30 and c[2] < 30:
+        col = rgb_to_hsv(c[0], c[1], c[2])
+        if col[2] < 30:
             continue
-        dominant_colors.append(c)
-    hsv_color = rgb_to_hsv(dominant_colors[0][0], dominant_colors[0][1], dominant_colors[0][2])
+        dominant_colors.append(col)
+    # hsv_color = rgb_to_hsv(dominant_colors[0][0], dominant_colors[0][1], dominant_colors[0][2])
 
-    pred = predictor.predict(np.array(hsv_color).reshape(1, -1))
+    # pred = predictor.predict(np.array(hsv_color).reshape(1, -1))
+    pred = predictor.predict(np.array(dominant_colors).reshape(1, -1))
     return np.asscalar(pred)
+

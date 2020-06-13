@@ -31,6 +31,9 @@ def plot_clusters(clrs, labels, n_clusters=2):
     ax = Axes3D(fig)
     for label, pix in zip(labels, clrs):
         ax.scatter(pix[0], pix[1], pix[2], color=cc.rgb_to_hex(colors[label]))
+    ax.set_xlabel('Hue')
+    ax.set_ylabel('Saturation')
+    ax.set_zlabel('Value')
     plt.show()
 
 def extract_objects(image, layer_outputs):
@@ -68,8 +71,8 @@ def extract_objects(image, layer_outputs):
     return boxes, confidences, classIDs
 
 
-# input_file = "cutvideo.mp4"
-input_file = "../clips/chelsea_manchester.mp4"
+input_file = "../clips/cutvideo.mp4"
+# input_file = "../clips/chelsea_manchester.mp4"
 # input_file = "../clips/aris_aek.mp4"
 
 labels_file = "../yolo_files/yolov3.txt"
@@ -96,7 +99,7 @@ layer_names = [layer_names[i[0] - 1] for i in yolo.getUnconnectedOutLayers()]
 
 vs = cv2.VideoCapture(input_file)
 imgs = []
-tmp = [0, 7, 8, 25]
+tmp = [0,2,4,7,8,12,15,17,19,22,26]
 keep=[]
 h = 0
 for j in range(2):
