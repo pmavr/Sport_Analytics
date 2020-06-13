@@ -79,28 +79,22 @@ def train_clustering(imgs, n_clusters=2):
             col = rgb_to_hsv(c[0], c[1], c[2])
             if col[0] > 10 and col[2] > 100:
                 dominant_colors.append(col)
-    # hsv_colors = [rgb_to_hsv(c[0], c[1], c[2]) for c in dominant_colors]
 
     # predictor = AgglomerativeClustering(n_clusters=clusters, linkage="average").fit(hsv_colors)
-    # predictor = KMeans(n_clusters=n_clusters).fit(hsv_colors)
     predictor = KMeans(n_clusters=n_clusters).fit(dominant_colors)
     return predictor, dominant_colors
 
 
-def predict_team(image, predictor, n_clusters=2):
-    filtered_image = remove_green(image)
+def predict_team(images, predictor):
+    filtered_images = [remove_green(image) for image in images]
     dominant_colors = []
-
-    dc = ColorClusters(filtered_image, n_clusters)
-    colors = dc.colorClusters()
-    for c in colors:
-        col = rgb_to_hsv(c[0], c[1], c[2])
-        if col[2] < 30:
-            continue
+    clusters = 1
+    for filtered_image in filtered_images:
+        dc = ColorClusters(filtered_image, clusters)
+        col = dc.colorClusters()[0]
+        col = rgb_to_hsv(col[0], col[1], col[2])
         dominant_colors.append(col)
-    # hsv_color = rgb_to_hsv(dominant_colors[0][0], dominant_colors[0][1], dominant_colors[0][2])
 
-    # pred = predictor.predict(np.array(hsv_color).reshape(1, -1))
-    pred = predictor.predict(np.array(dominant_colors).reshape(1, -1))
-    return np.asscalar(pred)
+    pred = predictor.predict(np.array(dominant_colors))
+    return pred
 
