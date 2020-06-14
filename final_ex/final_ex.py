@@ -63,8 +63,8 @@ def extract_objects(image, layer_outputs):
     return boxes, confidences, classIDs
 
 
-# input_file = "../clips/cutvideo.mp4"
-input_file = "../clips/chelsea_manchester.mp4"
+input_file = "../clips/cutvideo.mp4"
+# input_file = "../clips/chelsea_manchester.mp4"
 # input_file = "../clips/aris_aek.mp4"
 
 labels_file = "../yolo_files/yolov3.txt"
