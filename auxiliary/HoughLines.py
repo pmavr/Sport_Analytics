@@ -56,4 +56,12 @@ def houghLines(image):
 
     orginalImageWithHoughLines = blend_images(houghLinesImage2, image) # add two images together, using image blending
 
-    return edgeImage, orginalImageWithHoughLines
+    return orginalImageWithHoughLines
+
+
+
+# img_with_hough_lines = hl.houghLines(frame)
+#
+# cv2.imshow('Match Detection', img_with_hough_lines)
+# if cv2.waitKey(1) & 0xFF == ord('q'):
+#     break
