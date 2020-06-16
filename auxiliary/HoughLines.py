@@ -38,7 +38,7 @@ def houghLines(image, coloured_image):
     # Detect points that form a line
     dis_reso = 1  # Distance resolution in pixels of the Hough grid
     theta = np.pi / 180  # Angular resolution in radians of the Hough grid
-    threshold = 100  # minimum no of votes
+    threshold = 150  # minimum no of votes
 
     minLineLength = 30
     maxLineGap = 10
@@ -50,11 +50,12 @@ def houghLines(image, coloured_image):
     if houghLines is not None:
         for i in range(0, len(houghLines)):
             l = houghLines[i][0]
-            cv2.line(houghLinesImage, (l[0], l[1]), (l[2], l[3]), (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.line(houghLinesImage, (l[0], l[1]), (l[2], l[3]), (255, 255, 255), 1, cv2.LINE_AA)
         # tmpa = drawhoughLinesOnImage(image, houghLinesImage)
 
     # houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_RGB2GRAY)
-    # aux.show_image(houghLinesImage, 'houghLinesImage')
+
+    houghLines = cv2.HoughLines(image, dis_reso, theta, threshold)
 
     # houghLines2 = cv2.HoughLinesP(houghLinesImage, dis_reso, theta, 200, minLineLength, maxLineGap)
     # houghLinesImage2 = np.zeros_like(image)
@@ -63,6 +64,8 @@ def houghLines(image, coloured_image):
     #         l = houghLines2[i][0]
     #         cv2.line(houghLinesImage2, (l[0], l[1]), (l[2], l[3]), (255, 0, 0), 2, cv2.LINE_AA)
     #
+    # aux.show_image(houghLinesImage, 'houghLinesImage')
+    # aux.show_image(houghLinesImage2, 'houghLinesImage2')
 
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_GRAY2RGB)
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_BGR2RGB)
@@ -70,40 +73,53 @@ def houghLines(image, coloured_image):
     # aux.show_image(orginalImageWithHoughLines, 'houghLinesImage2')
     return orginalImageWithHoughLines
 
-def remove_white_dots(img):
+
+def remove_white_dots(image, iterations=1):
     # do connected components processing
-    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(img, None, None, None, 8, cv2.CV_32S)
-    # get CC_STAT_AREA component as stats[label, COLUMN]
-    areas = stats[1:, cv2.CC_STAT_AREA]
+    for j in range(iterations):
+        nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(image, None, None, None, 8, cv2.CV_32S)
+        # get CC_STAT_AREA component as stats[label, COLUMN]
+        areas = stats[1:, cv2.CC_STAT_AREA]
 
-    result = np.zeros((labels.shape), np.uint8)
+        result = np.zeros((labels.shape), np.uint8)
 
-    for i in range(0, nlabels - 1):
-        if areas[i] >= 100:  # keep
-            result[labels == i + 1] = 255
+        for i in range(0, nlabels - 1):
+            if areas[i] >= 100:  # keep
+                result[labels == i + 1] = 255
+
+        image = result
+        image = cv2.bitwise_not(image, image)
+
     return result
 
-frame = cv2.imread('../clips/frame0.jpg')
-# img2 = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-img = extract(frame, [40, 60, 60], [60, 255, 255])
-_, img = cv2.threshold(img, 70, 255, cv2.THRESH_BINARY_INV)
+def image_preprocess(image):
 
-kernel = np.ones((3, 3), np.uint8)
-img = cv2.dilate(img, kernel, iterations=3)
-img = cv2.erode(img, kernel, iterations=2)
-img = remove_white_dots(img)
-img = cv2.bitwise_not(img, img)
-img = remove_white_dots(img)
-img = cv2.Canny(img, 50, 120)
-img = cv2.dilate(img, kernel, iterations=3)
-kernel = np.ones((3, 3), np.uint8)
-img = cv2.erode(img, kernel, iterations=4)
-img = remove_white_dots(img)
-img = cv2.dilate(img, kernel, iterations=2)
+    # img = cv2.GaussianBlur(image, (5, 5), 0)
 
+    img = extract(image, [40, 60, 60], [60, 255, 255])
+    _, img = cv2.threshold(img, 70, 255, cv2.THRESH_BINARY_INV)
 
+    kernel = np.ones((3, 3), np.uint8)
 
-output = houghLines(img, frame)
+    img = cv2.dilate(img, kernel, iterations=3)
+    img = cv2.erode(img, kernel, iterations=2)
+    img = remove_white_dots(img, iterations=2)
 
-plt.imshow(output), plt.title('dilation2'), plt.show()
+    img = cv2.Canny(img, 50, 120)
+
+    img = cv2.dilate(img, kernel, iterations=4)
+    img = cv2.erode(img, kernel, iterations=5)
+    img = remove_white_dots(img, iterations=2)
+
+    img = cv2.dilate(img, kernel, iterations=1)
+
+    return img
+
+# frame = cv2.imread('../clips/frame05.jpg')
+#
+# img = image_preprocess(frame)
+#
+# output = houghLines(img, frame)
+#
+# aux.show_image(output,'Image with lines')
