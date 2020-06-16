@@ -1,18 +1,9 @@
 import numpy as np
 import cv2
-from auxiliary import ColorClusters as cc
+from auxiliary import ColorClusters as cc, aux
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import time
-
-
-def show_image(img, msg=''):
-    cv2.imshow(msg, img)
-    while 1:
-        k = cv2.waitKey(0)
-        if k == 27:
-            break
-    cv2.destroyWindow(msg)
 
 
 def plot_clusters(clrs, labels, n_clusters=2):

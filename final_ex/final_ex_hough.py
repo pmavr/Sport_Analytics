@@ -1,16 +1,9 @@
 import numpy as np
 import cv2
-from auxiliary import HoughLines as hl
+from auxiliary import HoughLines as hl, aux
 import time
 
 
-def show_image(img, msg=''):
-    cv2.imshow(msg, img)
-    while 1:
-        k = cv2.waitKey(0)
-        if k == 27:
-            break
-    cv2.destroyWindow(msg)
 
 
 input_file = "../clips/cutvideo.mp4"
