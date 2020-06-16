@@ -20,7 +20,7 @@ import os
 # args = vars(ap.parse_args())
 
 
-input_file = "cutvideo.mp4"
+input_file = "france_belgium.mp4"
 output_file = "cutvideo_out.avi"
 labels_file = "yolov3.txt"
 config_file = "yolov3.cfg"

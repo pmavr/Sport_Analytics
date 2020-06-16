@@ -6,7 +6,7 @@ import time
 
 
 
-input_file = "../clips/cutvideo.mp4"
+input_file = "../clips/france_belgium.mp4"
 # input_file = "../clips/chelsea_manchester.mp4"
 # input_file = "../clips/aris_aek.mp4"
 

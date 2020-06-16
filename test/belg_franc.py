@@ -23,7 +23,7 @@ def color_intensity(img, lower_range, upper_range):
 
 
 # Reading the video
-vidcap = cv2.VideoCapture('cutvideo.mp4')
+vidcap = cv2.VideoCapture('france_belgium.mp4')
 success, image = vidcap.read()
 count = 0
 success = True
