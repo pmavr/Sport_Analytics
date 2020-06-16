@@ -18,6 +18,7 @@ def extract(img, lower_range, upper_range):
     res = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
     return res
 
+
 def drawhoughLinesOnImage(image, houghLines):
     for line in houghLines:
         for rho, theta in line:
@@ -31,71 +32,78 @@ def drawhoughLinesOnImage(image, houghLines):
             y2 = int(y0 - 1000 * (a))
             cv2.line(image, (x1, y1), (x2, y2), (255, 0, 255), 3)
 
-def houghLines(image):
-    # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # # # blurredImage = cv2.GaussianBlur(gray_image, (5, 5), 0)
-    # edgeImage = cv2.Canny(gray_image, 50, 150)
-    # grass_field = extract(image, [36, 25, 25], [86, 255, 255])
-    # edgeImage2 = cv2.Canny(grass_field, 50, 120)
-    # kernel = np.ones((4, 4), np.uint8)
-    # dilation = cv2.dilate(edgeImage2, kernel, iterations=1)
+
+def houghLines(image, coloured_image):
 
     # Detect points that form a line
     dis_reso = 1  # Distance resolution in pixels of the Hough grid
     theta = np.pi / 180  # Angular resolution in radians of the Hough grid
-    threshold = 250  # minimum no of votes
+    threshold = 100  # minimum no of votes
 
     minLineLength = 30
     maxLineGap = 10
-    # houghLines = cv2.HoughLinesP(dilation, dis_reso, theta, threshold, minLineLength, maxLineGap)
-    houghLines = cv2.HoughLines(dilation, dis_reso, theta, threshold)
+    houghLines = cv2.HoughLinesP(image, dis_reso, theta, threshold, minLineLength, maxLineGap)
+    # houghLines = cv2.HoughLines(image, dis_reso, theta, threshold)
 
     houghLinesImage = np.zeros_like(image)  # create and empty image
 
     if houghLines is not None:
-        # for i in range(0, len(houghLines)):
-        #     l = houghLines[i][0]
-        #     cv2.line(houghLinesImage, (l[0], l[1]), (l[2], l[3]), (255, 255, 255), 3, cv2.LINE_AA)
-        tmpa = drawhoughLinesOnImage(image, houghLinesImage)
+        for i in range(0, len(houghLines)):
+            l = houghLines[i][0]
+            cv2.line(houghLinesImage, (l[0], l[1]), (l[2], l[3]), (255, 255, 255), 2, cv2.LINE_AA)
+        # tmpa = drawhoughLinesOnImage(image, houghLinesImage)
 
     # houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_RGB2GRAY)
+    # aux.show_image(houghLinesImage, 'houghLinesImage')
 
-    houghLines2 = cv2.HoughLinesP(houghLinesImage, dis_reso, theta, 300, minLineLength, maxLineGap)
-    houghLinesImage2 = np.zeros_like(image)
-    if houghLines2 is not None:
-        for i in range(0, len(houghLines2)):
-            l = houghLines2[i][0]
-            cv2.line(houghLinesImage2, (l[0], l[1]), (l[2], l[3]), (255, 255, 255), 3, cv2.LINE_AA)
+    # houghLines2 = cv2.HoughLinesP(houghLinesImage, dis_reso, theta, 200, minLineLength, maxLineGap)
+    # houghLinesImage2 = np.zeros_like(image)
+    # if houghLines2 is not None:
+    #     for i in range(0, len(houghLines2)):
+    #         l = houghLines2[i][0]
+    #         cv2.line(houghLinesImage2, (l[0], l[1]), (l[2], l[3]), (255, 0, 0), 2, cv2.LINE_AA)
+    #
 
-    orginalImageWithHoughLines = blend_images(houghLinesImage2, image)  # add two images together, using image blending
-
+    houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_GRAY2RGB)
+    houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_BGR2RGB)
+    orginalImageWithHoughLines = blend_images(houghLinesImage, coloured_image)  # add two images together, using image blending
+    # aux.show_image(orginalImageWithHoughLines, 'houghLinesImage2')
     return orginalImageWithHoughLines
 
+def remove_white_dots(img):
+    # do connected components processing
+    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(img, None, None, None, 8, cv2.CV_32S)
+    # get CC_STAT_AREA component as stats[label, COLUMN]
+    areas = stats[1:, cv2.CC_STAT_AREA]
 
-img = cv2.imread('../clips/frame0.jpg')
+    result = np.zeros((labels.shape), np.uint8)
+
+    for i in range(0, nlabels - 1):
+        if areas[i] >= 100:  # keep
+            result[labels == i + 1] = 255
+    return result
+
+frame = cv2.imread('../clips/frame0.jpg')
 # img2 = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-grass_field = extract(img, [40, 60, 60], [60, 255, 255])
-
-_, grass_field = cv2.threshold(grass_field, 70, 255, cv2.THRESH_BINARY_INV)
-
-# edgeImage = cv2.Canny(grass_field, 50, 120)
+img = extract(frame, [40, 60, 60], [60, 255, 255])
+_, img = cv2.threshold(img, 70, 255, cv2.THRESH_BINARY_INV)
 
 kernel = np.ones((3, 3), np.uint8)
-dilation = cv2.dilate(grass_field, kernel, iterations=3)
-erosion = cv2.erode(dilation, kernel, iterations=2)
-
-mask = cv2.bitwise_not(erosion, erosion)
-
-tmp = cv2.Canny(mask, 50, 120)
-
-tmp = cv2.dilate(tmp, kernel, iterations=3)
-
-kernel = np.ones((2, 2), np.uint8)
-tmp = cv2.erode(tmp, kernel, iterations=5)
-
-output = houghLines(tmp)
+img = cv2.dilate(img, kernel, iterations=3)
+img = cv2.erode(img, kernel, iterations=2)
+img = remove_white_dots(img)
+img = cv2.bitwise_not(img, img)
+img = remove_white_dots(img)
+img = cv2.Canny(img, 50, 120)
+img = cv2.dilate(img, kernel, iterations=3)
+kernel = np.ones((3, 3), np.uint8)
+img = cv2.erode(img, kernel, iterations=4)
+img = remove_white_dots(img)
+img = cv2.dilate(img, kernel, iterations=2)
 
 
+
+output = houghLines(img, frame)
 
 plt.imshow(output), plt.title('dilation2'), plt.show()
