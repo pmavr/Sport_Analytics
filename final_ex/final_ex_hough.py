@@ -13,7 +13,7 @@ input_file = "../clips/france_belgium.mp4"
 vs = cv2.VideoCapture(input_file)
 
 success, frame = vs.read()
-
+frame_count = 0
 while success:
 
     img = hl.image_preprocess2(frame)
@@ -32,6 +32,7 @@ while success:
     success, frame = vs.read()
 
     time.sleep(0.01)
+    frame_count += 1
 
 print("[INFO] cleaning up...")
 vs.release()
