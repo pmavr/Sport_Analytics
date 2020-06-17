@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from auxiliary import aux
+import itertools
 
 
 def blend_images(image, final_image, alpha=0.7, beta=1., gamma=0.):
@@ -90,7 +91,10 @@ def image_preprocess(image):
     # img = remove_white_dots(img, iterations=2)
     return img
 
+
 def find_intersection(l1, l2):
+    l1 = l1.reshape(-1, 1)
+    l2 = l2.reshape(-1, 1)
 
     # Calculate intercept and gradient of first line
     m1 = (l1[3] - l1[1]) / (l1[2] - l1[0])
@@ -108,17 +112,34 @@ def find_intersection(l1, l2):
     x = (b2 - b1) / (m1 - m2)
     y = m1 * x + b1
 
+    if x < 0 or y < 0 or x > 720 or y > 1280:
+        return np.array([0, 0])
+
     return np.array([x, y])
 
-def get_points(hough_lines):
-    pass
 
-frame = cv2.imread('../clips/frame0.jpg')
+def get_points(hough_lines):
+    intersection_points = list()
+
+    for line_i in hough_lines:
+        for line_j in hough_lines:
+            intersection_points.append(find_intersection(line_i, line_j))
+    return intersection_points
+
+
+frame = cv2.imread('../clips/frame05.jpg')
 
 img = image_preprocess(frame)
 
 lines, image_with_lines = houghLines(img, frame)
 
-image_with_points = get_points(lines)
+line_pairs = list(itertools.permutations(lines, 2))
+intersection_points = list()
+
+for pair in line_pairs:
+    intersection_points.append(find_intersection(pair[0], pair[1]))
+
+for dot in intersection_points:
+    cv2.line(image_with_lines, (dot[0], dot[1]), (dot[0], dot[1]), (255, 0, 255), 10)
 
 aux.show_image(image_with_lines, 'Image with lines')
