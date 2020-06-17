@@ -16,7 +16,7 @@ success, frame = vs.read()
 
 while success:
 
-    img = hl.image_preprocess(frame)
+    img = hl.image_preprocess2(frame)
 
     img_with_hough_lines = hl.houghLines(img, frame)
 
