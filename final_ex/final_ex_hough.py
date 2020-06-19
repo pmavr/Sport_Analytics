@@ -6,7 +6,7 @@ import time
 
 
 
-input_file = "../clips/france_belgium.mp4"
+input_file = "../clips/belgium_japan.mp4"
 # input_file = "../clips/chelsea_manchester.mp4"
 # input_file = "../clips/aris_aek.mp4"
 
@@ -16,9 +16,9 @@ success, frame = vs.read()
 frame_count = 0
 while success:
 
-    img = hl.image_preprocess2(frame)
+    img = hl.image_preprocess(frame)
 
-    img_with_hough_lines = hl.houghLines(img, frame)
+    _, img_with_hough_lines = hl.houghLines(img, frame)
 
     cv2.imshow('Match Detection', img_with_hough_lines)
 
@@ -31,7 +31,7 @@ while success:
 
     success, frame = vs.read()
 
-    time.sleep(0.01)
+    # time.sleep(0.01)
     frame_count += 1
 
 print("[INFO] cleaning up...")

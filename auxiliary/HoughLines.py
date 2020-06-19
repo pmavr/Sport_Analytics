@@ -1,8 +1,59 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-from auxiliary import aux
+from auxiliary import aux, homography as hmg
 import itertools
+
+
+def merge_similar_lines(l, lines):
+    # Put unique lines in array if theres only 1, for looping
+    if len(lines.shape) == 1:
+        lines = np.array([lines])
+    # Translate line to align with each unique line
+    d = np.column_stack(
+        ((lines[:, 0] + lines[:, 2]) / 2, (lines[:, 1] + lines[:, 3]) / 2)
+    )
+    d = np.tile(d, (1, 2))
+    tl = l - d
+    # Rotate line to align with each unique line
+    xd = lines[:, 2] - lines[:, 0]
+    yd = lines[:, 3] - lines[:, 1]
+    td = np.sqrt(xd * xd + yd * yd)
+    cos_theta = xd / td
+    sin_theta = yd / td
+    tl = np.column_stack(
+        (
+            tl[:, 0] * cos_theta + tl[:, 1] * sin_theta,
+            tl[:, 1] * cos_theta - tl[:, 0] * sin_theta,
+            tl[:, 2] * cos_theta + tl[:, 3] * sin_theta,
+            tl[:, 3] * cos_theta - tl[:, 2] * sin_theta,
+        )
+    )
+    # Bounds for the lines to be considered similar
+    xb = (
+        np.sqrt((lines[:, 0] - lines[:, 2]) ** 2 + (lines[:, 1] - lines[:, 3]) ** 2) / 2
+        + 10
+    )
+    yb = 15
+    # Check if line is similar to any unique line
+    similar = np.logical_and(abs(tl[:, 1]) < yb, abs(tl[:, 3]) < yb)
+    if sum(similar) > 1:
+        # If multiple similar lines, take the most similar
+        diffs = np.maximum(abs(tl[:, 1]), abs(tl[:, 3]))
+        similar[:] = False
+        similar[np.argmin(diffs)] = True
+    if any(similar):
+        # If line is similar, check if it extends beyond current unique line
+        # Update unique line to new length if it does
+        xb = xb[similar]
+        if tl[similar, 0] < -xb or tl[similar, 0] > xb:
+            lines[similar, 0:2] = l[0:2]
+        if tl[similar, 2] < -xb or tl[similar, 2] > xb:
+            lines[similar, 2:4] = l[2:4]
+    else:
+        # If line is sufficiently differet than other unique lines, add to unique set
+        lines = np.concatenate((lines, l.reshape(1, 4)), axis=0)
+    return lines
 
 
 def blend_images(image, final_image, alpha=0.7, beta=1., gamma=0.):
@@ -27,33 +78,50 @@ def drawhoughLinesOnImage(image, houghLines):
             b = np.sin(theta)
             x0 = a * rho
             y0 = b * rho
-            x1 = int(x0 + 1000 * (-b))
-            y1 = int(y0 + 1000 * (a))
-            x2 = int(x0 - 1000 * (-b))
-            y2 = int(y0 - 1000 * (a))
-            cv2.line(image, (x1, y1), (x2, y2), (255, 0, 255), 3)
+            x1 = int(x0 + 3000 * (-b))
+            y1 = int(y0 + 3000 * (a))
+            x2 = int(x0 - 3000 * (-b))
+            y2 = int(y0 - 3000 * (a))
+            cv2.line(image, (x1, y1), (x2, y2), (255, 255, 255), 1)
+
 
 
 def houghLines(image, coloured_image):
-    # Detect points that form a line
-    dis_reso = 1  # Distance resolution in pixels of the Hough grid
-    theta = np.pi / 180  # Angular resolution in radians of the Hough grid
 
-    houghLines = cv2.HoughLinesP(image, dis_reso, theta, threshold=100, minLineLength=100, maxLineGap=100)
-    # houghLines = cv2.HoughLines(image, dis_reso, theta, threshold)
+    houghLines = cv2.HoughLines(image, 1, np.pi/180, 150)
+    houghLinesImage = np.zeros_like(image)
 
-    houghLinesImage = np.zeros_like(image)  # create and empty image
+    if houghLines is not None:
+        drawhoughLinesOnImage(houghLinesImage, houghLines)
+        tmp = np.float32(houghLinesImage)
+        dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
+
+    houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_GRAY2RGB)
+    houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_BGR2RGB)
+    orginalImageWithHoughLines = blend_images(houghLinesImage, coloured_image)
+    orginalImageWithHoughLines[dst > 0.01 * dst.max()] = [0, 0, 255]
+
+        # aux.show_image(orginalImageWithHoughLines)
+    return houghLines, orginalImageWithHoughLines
+
+def houghLinesP(image, coloured_image):
+
+    houghLines = cv2.HoughLinesP(image, 1, np.pi/180, threshold=150, minLineLength=100, maxLineGap=100)
+
+    houghLinesImage = np.zeros_like(image)
 
     if houghLines is not None:
         for i in range(0, len(houghLines)):
             l = houghLines[i][0]
             cv2.line(houghLinesImage, (l[0], l[1]), (l[2], l[3]), (255, 255, 255), 1, cv2.LINE_AA)
 
+    tmp = np.float32(houghLinesImage)
+    dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
+
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_GRAY2RGB)
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_BGR2RGB)
-    orginalImageWithHoughLines = blend_images(houghLinesImage,
-                                              coloured_image)  # add two images together, using image blending
-
+    orginalImageWithHoughLines = blend_images(houghLinesImage, coloured_image)
+    orginalImageWithHoughLines[dst>0.01*dst.max()]=[0,0,255]
     return houghLines, orginalImageWithHoughLines
 
 
@@ -78,16 +146,21 @@ def remove_white_dots(image, iterations=1):
 
 def image_preprocess(image):
     lower_color = np.array([40, 60, 60])
-    upper_color = np.array([60, 255, 255])
+    upper_color = np.array([60, 255, 225])
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower_color, upper_color)
     mask = remove_white_dots(mask, iterations=2)
     img = cv2.bitwise_and(image, image, mask=mask)
+
+
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     _, img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY)
     kernel = np.ones((4, 4), np.uint8)
+
     img = cv2.dilate(img, kernel, iterations=1)
+    img = remove_white_dots(img, iterations=2)
     img = cv2.erode(img, kernel, iterations=1)
+    img = cv2.Canny(img, 500, 200)
     # img = remove_white_dots(img, iterations=2)
     return img
 
@@ -126,20 +199,31 @@ def get_points(hough_lines):
             intersection_points.append(find_intersection(line_i, line_j))
     return intersection_points
 
-
-frame = cv2.imread('../clips/frame05.jpg')
-
-img = image_preprocess(frame)
-
-lines, image_with_lines = houghLines(img, frame)
-
-line_pairs = list(itertools.permutations(lines, 2))
-intersection_points = list()
-
-for pair in line_pairs:
-    intersection_points.append(find_intersection(pair[0], pair[1]))
-
-for dot in intersection_points:
-    cv2.line(image_with_lines, (dot[0], dot[1]), (dot[0], dot[1]), (255, 0, 255), 10)
-
-aux.show_image(image_with_lines, 'Image with lines')
+#
+# frame = cv2.imread('../clips/frame0.jpg')
+#
+# img = image_preprocess(frame)
+#
+# lines, image_with_lines = houghLinesP(img, frame)
+# #
+# line_pairs = list(itertools.permutations(lines, 2))
+# intersection_points = list()
+#
+# # for pair in line_pairs:
+# #     intersection_points.append(find_intersection(pair[0], pair[1]))
+# #
+# # for dot in intersection_points:
+# #     cv2.line(image_with_lines, (dot[0], dot[1]), (dot[0], dot[1]), (255, 0, 255), 10)
+#
+#
+# court = cv2.imread('../clips/court.png')
+#
+# lower_color = np.array([20, 60, 60])
+# upper_color = np.array([40, 255, 255])
+# hsv = cv2.cvtColor(court, cv2.COLOR_BGR2HSV)
+# mask = cv2.inRange(hsv, lower_color, upper_color)
+#
+# # hmg.create_homography()
+#
+#
+# aux.show_image(image_with_lines, 'Image with lines')
