@@ -56,15 +56,16 @@ def merge_similar_lines(l, lines):
     return lines
 
 
-def is_horizontal(theta, delta=.0349066*2):
+def is_horizontal(theta, delta=.0349066 * 2):
     hor_angle = 1.46608
-    return True if (hor_angle - delta) <= theta <= (hor_angle + delta) else False # or (-1 * delta) <= theta <= delta else False
+    return True if (hor_angle - delta) <= theta <= (
+                hor_angle + delta) else False  # or (-1 * delta) <= theta <= delta else False
 
 
-def is_vertical(theta, delta=0.0349066*2):
+def is_vertical(theta, delta=0.0349066 * 2):
     ver_angle = 1.8326
-    return True if (ver_angle - delta) <= theta <= (ver_angle + delta) else False # or (3 * np.pi / 2) - delta <= theta <= (3 * np.pi / 2) + delta else False
-
+    return True if (ver_angle - delta) <= theta <= (
+                ver_angle + delta) else False  # or (3 * np.pi / 2) - delta <= theta <= (3 * np.pi / 2) + delta else False
 
 
 def blend_images(image, final_image, alpha=0.7, beta=1., gamma=0.):
@@ -212,6 +213,28 @@ def get_points(hough_lines):
         for line_j in hough_lines:
             intersection_points.append(find_intersection(line_i, line_j))
     return intersection_points
+
+
+def refine_lines(_lines):
+    filtered_lines = np.zeros([6, 1, 2])
+    n2 = 0
+    for n1 in range(0, len(_lines)):
+        for rho, theta in _lines[n1]:
+            if n1 == 0:
+                filtered_lines[n2] = _lines[n1]
+                n2 = n2 + 1
+            else:
+                if rho < 0:
+                    rho *= -1
+                    theta -= np.pi
+                closeness_rho = np.isclose(rho, filtered_lines[0:n2, 0, 0], atol=10)
+                closeness_theta = np.isclose(theta, filtered_lines[0:n2, 0, 1], atol=np.pi / 36)
+                closeness = np.all([closeness_rho, closeness_theta], axis=0)
+                if not any(closeness) and n2 < 4:
+                    filtered_lines[n2] = _lines[n1]
+                    n2 = n2 + 1
+    return filtered_lines
+
 #
 #
 # frame = cv2.imread('../clips/frame0.jpg')
@@ -219,30 +242,27 @@ def get_points(hough_lines):
 # img = image_preprocess(frame)
 #
 # lines, image_with_lines = houghLines(img, frame)
-#
-#
-#
+# #
+# #
+# #
 # hor_lines = list()
 # ver_lines = list()
 #
-# for idx, line in enumerate(lines):
+# for line in lines:
 #     rho, theta = line[0]
-#     if asdf.is_horizontal(theta):
-#         hor_lines.append([idx, line])
-#     elif asdf.is_vertical(theta):
-#         ver_lines.append([idx, line])
+#     if is_horizontal(theta):
+#         hor_lines.append(line)
+#     elif is_vertical(theta):
+#         ver_lines.append(line)
 #
-# if ver_lines is not None:
-#     drawhoughLinesOnImage(frame, [i[1] for i in ver_lines])
-# if hor_lines is not None:
-#     drawhoughLinesOnImage(frame, [i[1] for i in hor_lines])
-# tmp = np.float32(houghLinesImage)
-# dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
-
-# houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_GRAY2RGB)
-# houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_BGR2RGB)
-# orginalImageWithHoughLines = blend_images(houghLinesImage, coloured_image)
-
+# filtered_ver_lines = refine_lines(ver_lines)
+# filtered_hor_lines = refine_lines(hor_lines)
+#
+#
+# if filtered_ver_lines is not None:
+#     drawhoughLinesOnImage(frame, filtered_ver_lines)
+# if filtered_hor_lines is not None:
+#     drawhoughLinesOnImage(frame, filtered_hor_lines)
 #
 # line_pairs = list(itertools.permutations(lines, 2))
 # intersection_points = list()

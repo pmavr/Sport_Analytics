@@ -24,17 +24,20 @@ while success:
     ver_lines = list()
 
     if lines is not None:
-        for idx, line in enumerate(lines):
+        for line in lines:
             rho, theta = line[0]
             if hl.is_horizontal(theta):
-                hor_lines.append([idx, line])
+                hor_lines.append(line)
             elif hl.is_vertical(theta):
-                ver_lines.append([idx, line])
+                ver_lines.append(line)
 
-    if ver_lines is not None:
-        hl.drawhoughLinesOnImage(frame, [i[1] for i in ver_lines])
-    if hor_lines is not None:
-        hl.drawhoughLinesOnImage(frame, [i[1] for i in hor_lines])
+    filtered_ver_lines = hl.refine_lines(ver_lines)
+    filtered_hor_lines = hl.refine_lines(hor_lines)
+
+    if filtered_ver_lines is not None:
+        hl.drawhoughLinesOnImage(frame, filtered_ver_lines)
+    if filtered_hor_lines is not None:
+        hl.drawhoughLinesOnImage(frame, filtered_hor_lines)
 
     cv2.imshow('Match Detection', frame)
 
