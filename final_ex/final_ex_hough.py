@@ -3,19 +3,18 @@ import cv2
 from auxiliary import HoughLines as hl, aux
 import time
 
-
-
-
 input_file = "../clips/belgium_japan.mp4"
+# input_file = "../clips/france_belgium.mp4"
 # input_file = "../clips/chelsea_manchester.mp4"
 # input_file = "../clips/aris_aek.mp4"
 
 vs = cv2.VideoCapture(input_file)
 
 success, frame = vs.read()
+
 frame_count = 0
 while success:
-
+    frame = cv2.resize(frame, (1280, 720))
     img = hl.image_preprocess(frame)
 
     _, img_with_hough_lines = hl.houghLines(img, frame)

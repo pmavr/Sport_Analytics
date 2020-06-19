@@ -88,13 +88,13 @@ def drawhoughLinesOnImage(image, houghLines):
 
 def houghLines(image, coloured_image):
 
-    houghLines = cv2.HoughLines(image, 1, np.pi/180, 150)
+    houghLines = cv2.HoughLines(image, 1, np.pi/180, 110)
     houghLinesImage = np.zeros_like(image)
 
     if houghLines is not None:
         drawhoughLinesOnImage(houghLinesImage, houghLines)
-        tmp = np.float32(houghLinesImage)
-        dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
+    tmp = np.float32(houghLinesImage)
+    dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
 
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_GRAY2RGB)
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_BGR2RGB)
@@ -106,22 +106,22 @@ def houghLines(image, coloured_image):
 
 def houghLinesP(image, coloured_image):
 
-    houghLines = cv2.HoughLinesP(image, 1, np.pi/180, threshold=150, minLineLength=100, maxLineGap=100)
+    houghLines = cv2.HoughLinesP(image, 1, np.pi/180, threshold=50, minLineLength=100, maxLineGap=100)
 
     houghLinesImage = np.zeros_like(image)
 
     if houghLines is not None:
         for i in range(0, len(houghLines)):
             l = houghLines[i][0]
-            cv2.line(houghLinesImage, (l[0], l[1]), (l[2], l[3]), (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.line(houghLinesImage, (l[0], l[1]), (l[2], l[3]), (255, 255, 255), 2, cv2.LINE_AA)
 
-    tmp = np.float32(houghLinesImage)
-    dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
+    # tmp = np.float32(houghLinesImage)
+    # dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
 
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_GRAY2RGB)
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_BGR2RGB)
     orginalImageWithHoughLines = blend_images(houghLinesImage, coloured_image)
-    orginalImageWithHoughLines[dst>0.01*dst.max()]=[0,0,255]
+    # orginalImageWithHoughLines[dst>0.01*dst.max()]=[0,0,255]
     return houghLines, orginalImageWithHoughLines
 
 
@@ -163,6 +163,26 @@ def image_preprocess(image):
     img = cv2.Canny(img, 500, 200)
     # img = remove_white_dots(img, iterations=2)
     return img
+
+
+# def image_preprocess2(image):
+#     lower_color = np.array([40, 60, 60])
+#     upper_color = np.array([60, 255, 225])
+#     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+#
+#     mask = cv2.inRange(hsv, lower_color, upper_color)
+#
+#     img = cv2.bitwise_and(image, image, mask=mask)
+#     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#     _, img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY)
+#     kernel = np.ones((4, 4), np.uint8)
+#     img = cv2.dilate(img, kernel, iterations=1)
+#     img = remove_white_dots(img, iterations=2)
+#     img = cv2.erode(img, kernel, iterations=1)
+#     img = cv2.dilate(img, kernel, iterations=1)
+#     img = remove_white_dots(img, iterations=2)
+#     img = cv2.erode(img, kernel, iterations=1)
+#     return img
 
 
 def find_intersection(l1, l2):
