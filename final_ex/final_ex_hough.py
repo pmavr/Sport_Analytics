@@ -25,14 +25,14 @@ while success:
 
     if lines is not None:
         for line in lines:
-            rho, theta = line[0]
+            rho, theta = line
             if hl.is_horizontal(theta):
                 hor_lines.append(line)
             elif hl.is_vertical(theta):
                 ver_lines.append(line)
 
-    filtered_ver_lines = hl.refine_lines(ver_lines)
-    filtered_hor_lines = hl.refine_lines(hor_lines)
+    filtered_ver_lines = hl.refine_lines(ver_lines, 2)
+    filtered_hor_lines = hl.refine_lines(hor_lines, 2)
 
     if filtered_ver_lines is not None:
         hl.drawhoughLinesOnImage(frame, filtered_ver_lines)

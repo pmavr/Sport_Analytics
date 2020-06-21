@@ -1,71 +1,21 @@
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
+import operator, math
+from scipy.spatial import distance
 from auxiliary import aux, homography as hmg
 import itertools
-
-
-def merge_similar_lines(l, lines):
-    # Put unique lines in array if theres only 1, for looping
-    if len(lines.shape) == 1:
-        lines = np.array([lines])
-    # Translate line to align with each unique line
-    d = np.column_stack(
-        ((lines[:, 0] + lines[:, 2]) / 2, (lines[:, 1] + lines[:, 3]) / 2)
-    )
-    d = np.tile(d, (1, 2))
-    tl = l - d
-    # Rotate line to align with each unique line
-    xd = lines[:, 2] - lines[:, 0]
-    yd = lines[:, 3] - lines[:, 1]
-    td = np.sqrt(xd * xd + yd * yd)
-    cos_theta = xd / td
-    sin_theta = yd / td
-    tl = np.column_stack(
-        (
-            tl[:, 0] * cos_theta + tl[:, 1] * sin_theta,
-            tl[:, 1] * cos_theta - tl[:, 0] * sin_theta,
-            tl[:, 2] * cos_theta + tl[:, 3] * sin_theta,
-            tl[:, 3] * cos_theta - tl[:, 2] * sin_theta,
-        )
-    )
-    # Bounds for the lines to be considered similar
-    xb = (
-            np.sqrt((lines[:, 0] - lines[:, 2]) ** 2 + (lines[:, 1] - lines[:, 3]) ** 2) / 2
-            + 10
-    )
-    yb = 15
-    # Check if line is similar to any unique line
-    similar = np.logical_and(abs(tl[:, 1]) < yb, abs(tl[:, 3]) < yb)
-    if sum(similar) > 1:
-        # If multiple similar lines, take the most similar
-        diffs = np.maximum(abs(tl[:, 1]), abs(tl[:, 3]))
-        similar[:] = False
-        similar[np.argmin(diffs)] = True
-    if any(similar):
-        # If line is similar, check if it extends beyond current unique line
-        # Update unique line to new length if it does
-        xb = xb[similar]
-        if tl[similar, 0] < -xb or tl[similar, 0] > xb:
-            lines[similar, 0:2] = l[0:2]
-        if tl[similar, 2] < -xb or tl[similar, 2] > xb:
-            lines[similar, 2:4] = l[2:4]
-    else:
-        # If line is sufficiently differet than other unique lines, add to unique set
-        lines = np.concatenate((lines, l.reshape(1, 4)), axis=0)
-    return lines
 
 
 def is_horizontal(theta, delta=.0349066 * 2):
     hor_angle = 1.46608
     return True if (hor_angle - delta) <= theta <= (
-                hor_angle + delta) else False  # or (-1 * delta) <= theta <= delta else False
+            hor_angle + delta) else False  # or (-1 * delta) <= theta <= delta else False
 
 
 def is_vertical(theta, delta=0.0349066 * 2):
     ver_angle = 1.8326
     return True if (ver_angle - delta) <= theta <= (
-                ver_angle + delta) else False  # or (3 * np.pi / 2) - delta <= theta <= (3 * np.pi / 2) + delta else False
+            ver_angle + delta) else False  # or (3 * np.pi / 2) - delta <= theta <= (3 * np.pi / 2) + delta else False
 
 
 def blend_images(image, final_image, alpha=0.7, beta=1., gamma=0.):
@@ -83,23 +33,27 @@ def extract(img, lower_range, upper_range):
     return res
 
 
-def draw_line(img, rho, theta):
+def get_line_endpoints(rho, theta):
     a = np.cos(theta)
     b = np.sin(theta)
     x0 = a * rho
     y0 = b * rho
-    x1 = int(x0 + 3000 * (-b))
-    y1 = int(y0 + 3000 * (a))
-    x2 = int(x0 - 3000 * (-b))
-    y2 = int(y0 - 3000 * (a))
+    x1 = int(x0 + 1500 * (-b))
+    y1 = int(y0 + 1500 * (a))
+    x2 = int(x0 - 1500 * (-b))
+    y2 = int(y0 - 1500 * (a))
+    return (x1, y1), (x2, y2)
+
+
+def draw_line(img, rho, theta):
+    (x1, y1), (x2, y2) = get_line_endpoints(rho, theta)
     cv2.line(img, (x1, y1), (x2, y2), (255, 255, 255), 1)
     return img
 
 
 def drawhoughLinesOnImage(image, houghLines):
-    for line in houghLines:
-        for r, th in line:
-            image = draw_line(image, r, th)
+    for (r, th) in houghLines:
+        image = draw_line(image, r, th)
 
 
 def houghLines(image, coloured_image):
@@ -107,6 +61,7 @@ def houghLines(image, coloured_image):
     houghLinesImage = np.zeros_like(image)
 
     if houghLines is not None:
+        houghLines = houghLines.reshape(houghLines.shape[0], 2)
         drawhoughLinesOnImage(houghLinesImage, houghLines)
     # tmp = np.float32(houghLinesImage)
     # dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
@@ -125,6 +80,8 @@ def houghLinesP(image, coloured_image):
     houghLines = cv2.HoughLinesP(image, 1, np.pi / 180, threshold=50, minLineLength=100, maxLineGap=100)
 
     houghLinesImage = np.zeros_like(image)
+
+    houghLines = houghLines.reshape(25, 2)
 
     if houghLines is not None:
         for i in range(0, len(houghLines)):
@@ -180,62 +137,26 @@ def image_preprocess(image):
     return img
 
 
-def find_intersection(l1, l2):
-    l1 = l1.reshape(-1, 1)
-    l2 = l2.reshape(-1, 1)
-
-    # Calculate intercept and gradient of first line
-    m1 = (l1[3] - l1[1]) / (l1[2] - l1[0])
-    b1 = l1[1] - m1 * l1[0]
-
-    # If line is vertical, manually derive intersection
-    if l2[0] == l2[2]:
-        return np.array([l2[0], m1 * l2[0] + b1])
-
-    # Find intercept and gradient of second line
-    m2 = (l2[3] - l2[1]) / (l2[2] - l2[0])
-    b2 = l2[1] - m2 * l2[0]
-
-    # Calculate intercepts of lines
-    x = (b2 - b1) / (m1 - m2)
-    y = m1 * x + b1
-
-    if x < 0 or y < 0 or x > 720 or y > 1280:
-        return np.array([0, 0])
-
-    return np.array([x, y])
-
-
-def get_points(hough_lines):
-    intersection_points = list()
-
-    for line_i in hough_lines:
-        for line_j in hough_lines:
-            intersection_points.append(find_intersection(line_i, line_j))
-    return intersection_points
-
-
-def refine_lines(_lines):
+def refine_lines(_lines, pixel_thresh=10, degree_thresh=5):
     filtered_lines = np.zeros([6, 1, 2])
     n2 = 0
     for n1 in range(0, len(_lines)):
-        for rho, theta in _lines[n1]:
-            if n1 == 0:
+        rho, theta = _lines[n1]
+        if n1 == 0:
+            filtered_lines[n2] = _lines[n1]
+            n2 = n2 + 1
+        else:
+            if rho < 0:
+                rho *= -1
+                theta -= np.pi
+            closeness_rho = np.isclose(rho, filtered_lines[0:n2, 0, 0], atol=pixel_thresh)
+            closeness_theta = np.isclose(theta, filtered_lines[0:n2, 0, 1], atol=degree_thresh*np.pi/180)
+            closeness = np.all([closeness_rho, closeness_theta], axis=0)
+            if not any(closeness) and n2 < 4:
                 filtered_lines[n2] = _lines[n1]
                 n2 = n2 + 1
-            else:
-                if rho < 0:
-                    rho *= -1
-                    theta -= np.pi
-                closeness_rho = np.isclose(rho, filtered_lines[0:n2, 0, 0], atol=10)
-                closeness_theta = np.isclose(theta, filtered_lines[0:n2, 0, 1], atol=np.pi / 36)
-                closeness = np.all([closeness_rho, closeness_theta], axis=0)
-                if not any(closeness) and n2 < 4:
-                    filtered_lines[n2] = _lines[n1]
-                    n2 = n2 + 1
+    filtered_lines = filtered_lines.reshape(filtered_lines.shape[0], 2)
     return filtered_lines
-
-#
 #
 # frame = cv2.imread('../clips/frame0.jpg')
 #
@@ -249,20 +170,22 @@ def refine_lines(_lines):
 # ver_lines = list()
 #
 # for line in lines:
-#     rho, theta = line[0]
+#     rho, theta = line
 #     if is_horizontal(theta):
 #         hor_lines.append(line)
 #     elif is_vertical(theta):
 #         ver_lines.append(line)
 #
-# filtered_ver_lines = refine_lines(ver_lines)
-# filtered_hor_lines = refine_lines(hor_lines)
+# ref_hor_lines = refine_lines(hor_lines, 2)
+# ref_ver_lines = refine_lines(ver_lines, 2)
+#
+# if ver_lines is not None:
+#     drawhoughLinesOnImage(frame, ref_ver_lines)
+# if hor_lines is not None:
+#     drawhoughLinesOnImage(frame, ref_hor_lines)
 #
 #
-# if filtered_ver_lines is not None:
-#     drawhoughLinesOnImage(frame, filtered_ver_lines)
-# if filtered_hor_lines is not None:
-#     drawhoughLinesOnImage(frame, filtered_hor_lines)
+# aux.show_image(frame)
 #
 # line_pairs = list(itertools.permutations(lines, 2))
 # intersection_points = list()
