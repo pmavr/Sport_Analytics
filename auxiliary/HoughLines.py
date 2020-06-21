@@ -148,7 +148,7 @@ def refine_lines(_lines, pixel_thresh=10, degree_thresh=5):
                 rho *= -1
                 theta -= np.pi
             closeness_rho = np.isclose(rho, filtered_lines[0:n2, 0, 0], atol=pixel_thresh)
-            closeness_theta = np.isclose(theta, filtered_lines[0:n2, 0, 1], atol=degree_thresh*np.pi/180)
+            closeness_theta = np.isclose(theta, filtered_lines[0:n2, 0, 1], atol=degree_thresh * np.pi / 180)
             closeness = np.all([closeness_rho, closeness_theta], axis=0)
             if not any(closeness) and n2 < 4:
                 filtered_lines[n2] = _lines[n1]
@@ -168,7 +168,7 @@ def find_intersection(l1, l2):
         uB = ((Ax2 - Ax1) * (Ay1 - By1) - (Ay2 - Ay1) * (Ax1 - Bx1)) / d
     else:
         return
-    if not(0 <= uA <= 1 and 0 <= uB <= 1):
+    if not (0 <= uA <= 1 and 0 <= uB <= 1):
         return
     x = Ax1 + uA * (Ax2 - Ax1)
     y = Ay1 + uA * (Ay2 - Ay1)
@@ -176,48 +176,77 @@ def find_intersection(l1, l2):
     return np.array([x, y])
 
 
+def draw_intersection_points(coloured_image, lines):
+    intersection_mask = np.zeros_like(coloured_image)
 
-frame = cv2.imread('../clips/frame0.jpg')
+    line_pairs = list(itertools.combinations(lines, 2))
+    intersection_points = []
 
-img = image_preprocess(frame)
+    for pair in line_pairs:
+        intersection_points.append(find_intersection(pair[0], pair[1]))
 
-lines, image_with_lines = houghLines(img, frame)
+    for p in intersection_points:
+        if p is not None:
+            cv2.line(intersection_mask, (int(p[0]), int(p[1])), (int(p[0]), int(p[1])), (255, 255, 255), 20)
+
+    intersection_mask = cv2.cvtColor(intersection_mask, cv2.COLOR_BGR2GRAY)
+
+    corner_mask = np.zeros_like(coloured_image)
+
+    drawhoughLinesOnImage(corner_mask, lines)
+    corner_mask = cv2.cvtColor(corner_mask, cv2.COLOR_BGR2GRAY)
+    tmp = np.float32(corner_mask)
+
+    dst = cv2.cornerHarris(tmp, 15, 15, 0.04)
+
+    tmp2 = cv2.cvtColor(corner_mask, cv2.COLOR_GRAY2RGB)
+    tmp2 = cv2.cvtColor(tmp2, cv2.COLOR_BGR2RGB)
+    tmp2[dst > 0.01 * dst.max()] = [0, 255, 0]
+
+    lower_color = np.array([40, 255, 255])
+    upper_color = np.array([60, 255, 255])
+    hsv = cv2.cvtColor(tmp2, cv2.COLOR_BGR2HSV)
+    corner_mask = cv2.inRange(hsv, lower_color, upper_color)
+
+    mask = cv2.bitwise_and(intersection_mask, corner_mask)
+    mask = cv2.dilate(mask, np.ones((2, 2), np.uint8), iterations=15)
+    mask = cv2.erode(mask, np.ones((4, 4), np.uint8), iterations=5)
+    mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+    indices = np.where(mask == 255)
+    mask[indices[0], indices[1], :] = [0, 0, 255]
+
+    return blend_images(mask, coloured_image)
+
 #
+# frame = cv2.imread('../clips/frame0.jpg')
 #
+# img = image_preprocess(frame)
 #
-hor_lines = list()
-ver_lines = list()
-
-for line in lines:
-    rho, theta = line
-    if is_horizontal(theta):
-        hor_lines.append(line)
-    elif is_vertical(theta):
-        ver_lines.append(line)
-
-ref_hor_lines = refine_lines(hor_lines, 2)
-ref_ver_lines = refine_lines(ver_lines, 2)
-
-# if ver_lines is not None:
-#     drawhoughLinesOnImage(frame, ref_ver_lines)
-# if hor_lines is not None:
-#     drawhoughLinesOnImage(frame, ref_hor_lines)
-
-
-# aux.show_image(frame)
-lines = np.concatenate((ref_ver_lines, ref_hor_lines))
-
-line_pairs = list(itertools.combinations(lines, 2))
-intersection_points = []
-
-for pair in line_pairs:
-    intersection_points.append(find_intersection(pair[0], pair[1]))
-
-for p in intersection_points:
-    if p is not None:
-        cv2.line(frame, (int(p[0]),int(p[1])), (int(p[0]), int(p[1])), (255, 0, 255), 5)
-
-aux.show_image(frame)
+# lines, image_with_lines = houghLines(img, frame)
+#
+# hor_lines = list()
+# ver_lines = list()
+#
+# for line in lines:
+#     rho, theta = line
+#     if is_horizontal(theta):
+#         hor_lines.append(line)
+#     elif is_vertical(theta):
+#         ver_lines.append(line)
+#
+# ref_hor_lines = refine_lines(hor_lines, 2)
+# ref_ver_lines = refine_lines(ver_lines, 2)
+#
+# # if ver_lines is not None:
+# #     drawhoughLinesOnImage(frame, ref_ver_lines)
+# # if hor_lines is not None:
+# #     drawhoughLinesOnImage(frame, ref_hor_lines)
+#
+# lines = np.concatenate((ref_ver_lines, ref_hor_lines))
+#
+# corner_points_image = draw_intersection_points(frame, lines)
+#
+# aux.show_image(corner_points_image)
 # court = cv2.imread('../clips/court.png')
 #
 # lower_color = np.array([20, 60, 60])

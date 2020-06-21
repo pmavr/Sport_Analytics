@@ -34,12 +34,11 @@ while success:
     filtered_ver_lines = hl.refine_lines(ver_lines, 2)
     filtered_hor_lines = hl.refine_lines(hor_lines, 2)
 
-    if filtered_ver_lines is not None:
-        hl.drawhoughLinesOnImage(frame, filtered_ver_lines)
-    if filtered_hor_lines is not None:
-        hl.drawhoughLinesOnImage(frame, filtered_hor_lines)
+    lines = np.concatenate((filtered_ver_lines, filtered_hor_lines))
 
-    cv2.imshow('Match Detection', frame)
+    corner_points_image = hl.draw_intersection_points(frame, lines)
+
+    cv2.imshow('Match Detection', corner_points_image)
 
     # video play - pause - quit
     key = cv2.waitKey(1)
