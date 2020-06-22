@@ -31,14 +31,23 @@ while success:
             elif hl.is_vertical(theta):
                 ver_lines.append(line)
 
-    filtered_ver_lines = hl.refine_lines(ver_lines, 2)
-    filtered_hor_lines = hl.refine_lines(hor_lines, 2)
+    ref_hor_lines = hl.refine_lines(hor_lines, rtol=.15)
+    ref_ver_lines = hl.refine_lines(ver_lines, rtol=.15)
 
-    lines = np.concatenate((filtered_ver_lines, filtered_hor_lines))
+    if ref_hor_lines is not None:
+        hl.drawhoughLinesOnImage(frame, ref_hor_lines)
+    if ref_ver_lines is not None:
+        hl.drawhoughLinesOnImage(frame, ref_ver_lines)
 
-    corner_points_image = hl.draw_intersection_points(frame, lines)
+    lines = []
+    for line in ref_hor_lines:
+        lines.append(line)
+    for line in ref_ver_lines:
+        lines.append(line)
 
-    cv2.imshow('Match Detection', corner_points_image)
+    intersection_points = hl.draw_intersection_points(frame, lines)
+
+    cv2.imshow('Match Detection', frame)
 
     # video play - pause - quit
     key = cv2.waitKey(1)

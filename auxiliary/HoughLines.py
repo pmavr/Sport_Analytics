@@ -6,13 +6,13 @@ from auxiliary import aux, homography as hmg
 import itertools
 
 
-def is_horizontal(theta, delta=.0349066 * 2):
+def is_horizontal(theta, delta=.0349066 * 4):
     hor_angle = 1.46608
     return True if (hor_angle - delta) <= theta <= (
             hor_angle + delta) else False  # or (-1 * delta) <= theta <= delta else False
 
 
-def is_vertical(theta, delta=0.0349066 * 2):
+def is_vertical(theta, delta=0.0349066 * 4):
     ver_angle = 1.8326
     return True if (ver_angle - delta) <= theta <= (
             ver_angle + delta) else False  # or (3 * np.pi / 2) - delta <= theta <= (3 * np.pi / 2) + delta else False
@@ -34,15 +34,26 @@ def extract(img, lower_range, upper_range):
 
 
 def get_line_endpoints(rho, theta):
+    line_length = 2000
     a = np.cos(theta)
     b = np.sin(theta)
     x0 = a * rho
     y0 = b * rho
-    x1 = int(x0 + 1500 * (-b))
-    y1 = int(y0 + 1500 * (a))
-    x2 = int(x0 - 1500 * (-b))
-    y2 = int(y0 - 1500 * (a))
+    x1 = int(x0 + line_length * (-b))
+    y1 = int(y0 + line_length * (a))
+    x2 = int(x0 - line_length * (-b))
+    y2 = int(y0 - line_length * (a))
     return (x1, y1), (x2, y2)
+
+
+def get_line_midpoints(rho, theta):
+    (x1, y1), (x2, y2) = get_line_endpoints(rho, theta)
+    x = int((x1 + x2) / 2)
+    y = int((y1 + y2) / 2)
+
+    x = int((x + x2) / 2)
+    y = int((y + y2) / 2)
+    return x, y
 
 
 def draw_line(img, rho, theta):
@@ -135,27 +146,34 @@ def image_preprocess(image):
     return img
 
 
-def refine_lines(_lines, pixel_thresh=10, degree_thresh=5):
-    filtered_lines = np.zeros([6, 1, 2])
-    n2 = 0
-    for n1 in range(0, len(_lines)):
-        rho, theta = _lines[n1]
-        if n1 == 0:
-            filtered_lines[n2] = _lines[n1]
-            n2 = n2 + 1
-        else:
-            if rho < 0:
-                rho *= -1
-                theta -= np.pi
-            closeness_rho = np.isclose(rho, filtered_lines[0:n2, 0, 0], atol=pixel_thresh)
-            closeness_theta = np.isclose(theta, filtered_lines[0:n2, 0, 1], atol=degree_thresh * np.pi / 180)
-            closeness = np.all([closeness_rho, closeness_theta], axis=0)
-            if not any(closeness) and n2 < 4:
-                filtered_lines[n2] = _lines[n1]
-                n2 = n2 + 1
-    filtered_lines = filtered_lines.reshape(filtered_lines.shape[0], 2)
-    filtered_lines = filtered_lines[(filtered_lines[:, 0] > 0) & (filtered_lines[:, 1] > 0)]
-    return filtered_lines
+def lines_are_close(midA, midB, rtol):
+    closeness = np.isclose(midA, midB, rtol=rtol)
+    return closeness[0] and closeness[1]
+
+
+def refine_lines(_lines, rtol=.1):
+    rtol = .15
+    _lines = [[l, get_line_midpoints(l[0], l[1]), True] for l in _lines]
+
+    # for (current_line, current_mid, current_keep) in _lines:
+    #     cv2.line(frame, current_mid, current_mid, (255, 255, 255), 20)
+
+    for current_idx, (current_line, current_mid, current_keep) in enumerate(_lines):
+        if not current_keep:
+            continue
+        for checked_idx, (checked_line, checked_mid, checked_keep) in enumerate(_lines):
+            if not checked_keep or current_idx == checked_idx:
+                continue
+            if lines_are_close(current_mid, checked_mid, rtol):
+                _lines[checked_idx][2] = False
+
+    refine_lines = [line for (line, _, keep) in _lines if keep]
+
+    # for (current_line, current_mid, current_keep) in _lines:
+    #     if current_keep:
+    #         cv2.line(frame, current_mid, current_mid, (255, 255, 255), 20)
+
+    return refine_lines
 
 
 def find_intersection(l1, l2):
@@ -177,8 +195,6 @@ def find_intersection(l1, l2):
 
 
 def draw_intersection_points(coloured_image, lines):
-    intersection_mask = np.zeros_like(coloured_image)
-
     line_pairs = list(itertools.combinations(lines, 2))
     intersection_points = []
 
@@ -187,74 +203,75 @@ def draw_intersection_points(coloured_image, lines):
 
     for p in intersection_points:
         if p is not None:
-            cv2.line(intersection_mask, (int(p[0]), int(p[1])), (int(p[0]), int(p[1])), (255, 255, 255), 20)
+            cv2.line(coloured_image, (int(p[0]), int(p[1])), (int(p[0]), int(p[1])), (255, 255, 0), 10)
 
-    intersection_mask = cv2.cvtColor(intersection_mask, cv2.COLOR_BGR2GRAY)
+    # mask = cv2.cvtColor(intersection_mask, cv2.COLOR_BGR2GRAY)
 
-    corner_mask = np.zeros_like(coloured_image)
+    # # mask = intersection_mask
+    # mask = cv2.bitwise_and(intersection_mask, corner_mask)
+    # mask = cv2.dilate(mask, np.ones((2, 2), np.uint8), iterations=15)
+    # mask = cv2.erode(mask, np.ones((4, 4), np.uint8), iterations=5)
+    # mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+    # indices = np.where(mask == 255)
+    # mask[indices[0], indices[1], :] = [0, 0, 255]
 
-    drawhoughLinesOnImage(corner_mask, lines)
-    corner_mask = cv2.cvtColor(corner_mask, cv2.COLOR_BGR2GRAY)
-    tmp = np.float32(corner_mask)
+    # return blend_images(mask, coloured_image)
+    return coloured_image
 
-    dst = cv2.cornerHarris(tmp, 15, 15, 0.04)
+frame = cv2.imread('../clips/frame3.jpg')
 
-    tmp2 = cv2.cvtColor(corner_mask, cv2.COLOR_GRAY2RGB)
-    tmp2 = cv2.cvtColor(tmp2, cv2.COLOR_BGR2RGB)
-    tmp2[dst > 0.01 * dst.max()] = [0, 255, 0]
+img = image_preprocess(frame)
 
-    lower_color = np.array([40, 255, 255])
-    upper_color = np.array([60, 255, 255])
-    hsv = cv2.cvtColor(tmp2, cv2.COLOR_BGR2HSV)
-    corner_mask = cv2.inRange(hsv, lower_color, upper_color)
+lines, image_with_lines = houghLines(img, frame)
 
-    mask = cv2.bitwise_and(intersection_mask, corner_mask)
-    mask = cv2.dilate(mask, np.ones((2, 2), np.uint8), iterations=15)
-    mask = cv2.erode(mask, np.ones((4, 4), np.uint8), iterations=5)
-    mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-    indices = np.where(mask == 255)
-    mask[indices[0], indices[1], :] = [0, 0, 255]
+hor_lines = list()
+ver_lines = list()
 
-    return blend_images(mask, coloured_image)
+for line in lines:
+    rho, theta = line
+    if is_horizontal(theta):
+        hor_lines.append(line)
+    elif is_vertical(theta):
+        ver_lines.append(line)
 
-#
-# frame = cv2.imread('../clips/frame0.jpg')
-#
-# img = image_preprocess(frame)
-#
-# lines, image_with_lines = houghLines(img, frame)
-#
-# hor_lines = list()
-# ver_lines = list()
-#
-# for line in lines:
-#     rho, theta = line
-#     if is_horizontal(theta):
-#         hor_lines.append(line)
-#     elif is_vertical(theta):
-#         ver_lines.append(line)
-#
-# ref_hor_lines = refine_lines(hor_lines, 2)
-# ref_ver_lines = refine_lines(ver_lines, 2)
-#
-# # if ver_lines is not None:
-# #     drawhoughLinesOnImage(frame, ref_ver_lines)
-# # if hor_lines is not None:
-# #     drawhoughLinesOnImage(frame, ref_hor_lines)
-#
-# lines = np.concatenate((ref_ver_lines, ref_hor_lines))
-#
-# corner_points_image = draw_intersection_points(frame, lines)
-#
-# aux.show_image(corner_points_image)
-# court = cv2.imread('../clips/court.png')
-#
-# lower_color = np.array([20, 60, 60])
-# upper_color = np.array([40, 255, 255])
-# hsv = cv2.cvtColor(court, cv2.COLOR_BGR2HSV)
-# mask = cv2.inRange(hsv, lower_color, upper_color)
-#
-# # hmg.create_homography()
-#
-#
-# aux.show_image(image_with_lines, 'Image with lines')
+# if ver_lines is not None:
+#     drawhoughLinesOnImage(frame, ver_lines)
+# if hor_lines is not None:
+#     drawhoughLinesOnImage(frame, hor_lines)
+
+# aux.show_image(frame)
+
+ref_ver_lines = refine_lines(ver_lines, rtol=.125)
+ref_hor_lines = refine_lines(hor_lines, rtol=.125)
+
+
+if ref_hor_lines is not None:
+    drawhoughLinesOnImage(frame, ref_hor_lines)
+if ref_ver_lines is not None:
+    drawhoughLinesOnImage(frame, ref_ver_lines)
+
+lines = []
+for line in ref_hor_lines:
+    lines.append(line)
+for line in ref_ver_lines:
+    lines.append(line)
+
+
+intersection_points = draw_intersection_points(frame, lines)
+
+for (x, y) in tmp:
+    cv2.line(frame, (x, y), (x, y), (255, 255, 255), 20)
+
+
+aux.show_image(frame)
+court = cv2.imread('../clips/court.png')
+
+lower_color = np.array([20, 60, 60])
+upper_color = np.array([40, 255, 255])
+hsv = cv2.cvtColor(court, cv2.COLOR_BGR2HSV)
+mask = cv2.inRange(hsv, lower_color, upper_color)
+
+# hmg.create_homography()
+
+
+aux.show_image(image_with_lines, 'Image with lines')
