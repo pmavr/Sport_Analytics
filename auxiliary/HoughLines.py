@@ -107,31 +107,12 @@ def houghLinesP(image, coloured_image):
     return houghLines, orginalImageWithHoughLines
 
 
-def remove_white_dots(image, iterations=1):
-    # do connected components processing
-    for j in range(iterations):
-        nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(image, None, None, None, 8, cv2.CV_32S)
-        # get CC_STAT_AREA component as stats[label, COLUMN]
-        areas = stats[1:, cv2.CC_STAT_AREA]
-
-        result = np.zeros((labels.shape), np.uint8)
-
-        for i in range(0, nlabels - 1):
-            if areas[i] >= 100:  # keep
-                result[labels == i + 1] = 255
-
-        image = result
-        image = cv2.bitwise_not(image, image)
-
-    return result
-
-
 def image_preprocess(image):
     lower_color = np.array([40, 60, 60])
     upper_color = np.array([60, 255, 225])
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower_color, upper_color)
-    mask = remove_white_dots(mask, iterations=2)
+    mask = aux.remove_white_dots(mask, iterations=2)
     img = cv2.bitwise_and(image, image, mask=mask)
 
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -139,7 +120,7 @@ def image_preprocess(image):
     kernel = np.ones((4, 4), np.uint8)
 
     img = cv2.dilate(img, kernel, iterations=1)
-    img = remove_white_dots(img, iterations=2)
+    img = aux.remove_white_dots(img, iterations=2)
     img = cv2.erode(img, kernel, iterations=1)
     img = cv2.Canny(img, 500, 200)
     # img = remove_white_dots(img, iterations=2)

@@ -64,3 +64,4 @@ while success:
 print("[INFO] cleaning up...")
 vs.release()
 cv2.destroyAllWindows()
+
