@@ -19,11 +19,10 @@ def plot_clusters(clrs, labels, n_clusters=2):
     ax.set_zlabel('Value')
     plt.show()
 
-
-
+input_file = "../clips/france_belgium.mp4"
 # input_file = "../clips/chelsea_manchester.mp4"
 # input_file = "../clips/aris_aek.mp4"
-input_file = "../clips/belgium_japan.mp4"
+# input_file = "../clips/belgium_japan.mp4"
 
 training_frames = 2
 yolo = od.ObjectDetector()
@@ -50,7 +49,7 @@ team_predictor = cc.train_clustering(boxes, n_clusters=3)
 vs = cv2.VideoCapture(input_file)
 
 success, frame = vs.read()
-
+frame_count = 0
 while success:
 
     frame = cv2.resize(frame, (1280, 720))
@@ -70,6 +69,7 @@ while success:
         break
 
     success, frame = vs.read()
+    frame += 1
 
 print("[INFO] cleaning up...")
 vs.release()

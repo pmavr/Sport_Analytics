@@ -82,18 +82,21 @@ class ObjectDetector:
 
     def determine_team(self, objs, predictor):
 
-        bounding_boxes = [self.to_image(b) for (b, _, _, _) in objs]
+        # bounding_boxes = [self.to_image(b) for (b, _, _, _) in objs]
 
-        team_predictions = cc.predict_team(bounding_boxes, predictor)
-        for idx, (obj, team_prediction) in enumerate(zip(objs, team_predictions)):
-            (_, _, cls, _) = obj
+        # if box.shape[0] > box.shape[1]:
+
+        # team_predictions = cc.predict_team(bounding_boxes, predictor)
+        # for idx, (obj, team_prediction) in enumerate(zip(objs, team_predictions)):
+        for idx, obj in enumerate(objs):
+            (box, _, cls, _) = obj
             if cls == self.CLASS_BALL:
                 objs[idx][2] = 3
             elif cls != self.CLASS_PERSON:
                 objs[idx][3] = False
             else:
-                objs[idx][2] = team_prediction
-
+                # objs[idx][2] = team_prediction
+                objs[idx][2] = cc.predict_team(self.to_image(box), predictor)
         return objs
 
     def draw_bounding_boxes(self, objs):
