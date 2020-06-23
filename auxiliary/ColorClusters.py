@@ -17,25 +17,11 @@ class ColorClusters:
         self.IMAGE = image
 
     def colorClusters(self):
-        # convert to rgb from bgr
-        # img = cv2.cvtColor(self.IMAGE, cv2.COLOR_BGR2RGB)
         img = self.IMAGE
-        # reshaping to a list of pixels
-        # img = img.reshape((img.shape[0] * img.shape[1], 3))
-
-        # using k-means to cluster pixels
-        if (img.shape[0]==0):
-            print()
         kmeans = KMeans(n_clusters=self.CLUSTERS)
         kmeans.fit(img)
-
-        # the cluster centers are our dominant colors.
         self.COLORS = kmeans.cluster_centers_
-
-        # save labels
         self.LABELS = kmeans.labels_
-
-        # returning after converting to integer from float
         return self.COLORS.astype(int)
 
     def plotClusters(self):
@@ -97,7 +83,6 @@ def remove_green(img):
     mask = cv2.inRange(hsv, lower_green, upper_green)
     mask = cv2.bitwise_not(mask, mask)
     res = cv2.bitwise_and(img, img, mask=mask)
-    # aux.show_image(res)
     return res
 
 
@@ -112,13 +97,20 @@ def rgb_to_hsv(r, g, b):
     return [hsv_colors[0][0][0], hsv_colors[0][0][1], hsv_colors[0][0][2]]
 
 
-def train_clustering(imgs, n_clusters=2):
-    print('[INFO] Train team predictor...')
+def kmeans_train_clustering(imgs, n_clusters=2):
+    print('[INFO] Train team predictor using KMeans clustering...')
 
     dominant_colors = [find_dominant_color(img) for img in imgs]
     dominant_colors = [np.array([c[0][0] + c[1][0]]) for c in dominant_colors]
-    predictor = KMeans(n_clusters=n_clusters).fit(dominant_colors)
-    return predictor
+    return KMeans(n_clusters=n_clusters).fit(dominant_colors)
+
+
+# def agglo_train_clustering(imgs, n_clusters=2):
+#     print('[INFO] Train team predictor Agglomerative clustering...')
+#
+#     dominant_colors = [find_dominant_color(img) for img in imgs]
+#     dominant_colors = [np.array([c[0][0] + c[1][0]]) for c in dominant_colors]
+#     return AgglomerativeClustering(n_clusters=n_clusters, linkage="average").fit(dominant_colors)
 
 
 def find_dominant_color(img, n_dominant_colors=2):
@@ -132,13 +124,18 @@ def find_dominant_color(img, n_dominant_colors=2):
     return hsv_colors
 
 
-# def predict_team(imgs, predictor):
-#     dominant_colors = [find_dominant_color(img) for img in imgs]
-#     dominant_colors = [np.array([c[0][0] + c[1][0]]) for c in dominant_colors]
-#     return predictor.predict(dominant_colors)
-
-def predict_team(img, predictor):
+def kmeans_predict_team(img, predictor):
     dominant_color = find_dominant_color(img)
-    dominant_color = np.array([[dominant_color[0][0] + dominant_color[1][0]]]).astype('uint16')
+    dominant_color = np.array([[
+        int(dominant_color[0][0]) +
+        int(dominant_color[1][0])
+    ]])
     pred = predictor.predict(dominant_color)
     return np.asscalar(pred)
+
+
+# def agglo_predict_team(imgs, predictor):
+#     dominant_colors = [find_dominant_color(img) for (_, img) in imgs]
+#     dominant_colors = [np.array([int(c[0][0]) + int(c[1][0])]) for c in dominant_colors]
+#     pred = predictor.fit_predict(dominant_colors)
+#     return [[idx, p] for p, (idx, _) in zip(pred, imgs)]

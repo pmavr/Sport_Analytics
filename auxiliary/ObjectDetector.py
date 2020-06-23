@@ -7,7 +7,7 @@ from auxiliary.aux import show_image
 class ObjectDetector:
     CLASS_PERSON = 0
     CLASS_BALL = 32
-    COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255), (255, 0, 255)]
+    COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255), (255, 0, 255), (255, 255, 0)]
 
     def __init__(self):
         self.labels_file = "../yolo_files/yolov3.txt"
@@ -45,22 +45,19 @@ class ObjectDetector:
     def extract_objects(self, layer_outputs):
 
         h, w = self.frame.shape[:2]
-
         boxes = []
         confidences = []
         classIDs = []
 
-        # loop over each of the layer outputs
         for output in layer_outputs:
-            # loop over each of the detections
+
             for detection in output:
-                # extract the class ID and confidence (i.e., probability)
-                # of the current object detection
+
                 scores = detection[5:]
                 classID = np.argmax(scores)
                 confidence = scores[classID]
 
-                if confidence > self.desired_conf:
+                if confidence > self.desired_conf and classID in (self.CLASS_PERSON, self.CLASS_BALL):
 
                     box = detection[0:4] * np.array([w, h, w, h])
                     (centerX, centerY, width, height) = box.astype("int")
@@ -68,7 +65,7 @@ class ObjectDetector:
                     x = int(centerX - (width / 2))
                     y = int(centerY - (height / 2))
 
-                    if x < 0 or y < 0:
+                    if x < 0 or y < 0 or width / self.frame.shape[0] > .5 or height / self.frame.shape[1] > .5:
                         continue
 
                     boxes.append([x, y, int(width), int(height)])
@@ -78,16 +75,10 @@ class ObjectDetector:
         # return array of elements
         # (bounding_box, pred_confidence, pred_class, valid_box)
         # where valid box => person or soccer ball (to be refined later)
-        return [[box, conf, cls, True] for (box, conf, cls) in zip(boxes, confidences, classIDs)]
+        return [[box, conf, cls, None] for (box, conf, cls) in zip(boxes, confidences, classIDs)]
 
-    def determine_team(self, objs, predictor):
+    def kmeans_determine_team(self, objs, predictor):
 
-        # bounding_boxes = [self.to_image(b) for (b, _, _, _) in objs]
-
-        # if box.shape[0] > box.shape[1]:
-
-        # team_predictions = cc.predict_team(bounding_boxes, predictor)
-        # for idx, (obj, team_prediction) in enumerate(zip(objs, team_predictions)):
         for idx, obj in enumerate(objs):
             (box, _, cls, _) = obj
             if cls == self.CLASS_BALL:
@@ -95,21 +86,36 @@ class ObjectDetector:
             elif cls != self.CLASS_PERSON:
                 objs[idx][3] = False
             else:
-                # objs[idx][2] = team_prediction
-                objs[idx][2] = cc.predict_team(self.to_image(box), predictor)
+                objs[idx][2] = cc.kmeans_predict_team(self.to_image(box), predictor)
         return objs
 
-    def draw_bounding_boxes(self, objs):
-        image = self.frame
-        for (box, conf, cls, valid_box) in objs:
-            if valid_box:
-                (x, y) = (box[0], box[1])
-                (w, h) = (box[2], box[3])
-                color = self.COLORS[cls]
-                cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
-                # text = "{}: {:.4f}".format(self.LABELS[class_list[i]], conf_list[i])
-                cv2.putText(image, '', (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        return image
+    # def agglo_determine_team(self, objs, predictor):
+    #
+    #     person_bounding_boxes = [[idx, self.to_image(b)] for (idx, b, _, c, _) in objs if c == self.CLASS_PERSON]
+    #
+    #     team_predictions = cc.agglo_predict_team(person_bounding_boxes, predictor)
+    #
+    #     objs.sort(key=lambda i: i[0])
+    #     for (idx, _, _, cls, _) in objs:
+    #         if cls == self.CLASS_BALL:
+    #             objs[idx][3] = 3
+    #
+    #     for (idx, pred) in team_predictions:
+    #         objs[idx][3] = pred
+    #
+    #     return objs
+
+    def draw_bounding_boxes(self, image, objs):
+
+        nimage = np.copy(image)
+
+        for (box, conf, cls, text) in objs:
+            (x, y) = (box[0], box[1])
+            (w, h) = (box[2], box[3])
+            color = self.COLORS[cls]
+            cv2.rectangle(nimage, (x, y), (x + w, y + h), color, 2)
+            cv2.putText(nimage, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        return nimage
 
     def to_image(self, box):
         return self.frame[box[1]:box[1] + box[3], box[0]:box[0] + box[2]]
@@ -127,7 +133,6 @@ def image_preprocess(image):
 
     return cv2.bitwise_and(image, image, mask=mask)
 
-#
 # input_file = "../clips/belgium_japan.mp4"
 # training_frames = 2
 # yolo = ObjectDetector()
@@ -158,7 +163,7 @@ def image_preprocess(image):
 # ###############################################################
 # ###############################################################
 #
-# frame = cv2.imread('../clips/frame3.jpg')
+# frame = cv2.imread('../clips/frame5.jpg')
 # frame = cv2.resize(frame, (1280, 720))
 #
 # img = image_preprocess(frame)
@@ -169,6 +174,6 @@ def image_preprocess(image):
 #
 # objects = yolo.determine_team(objects, team_predictor)
 #
-# frame = yolo.draw_bounding_boxes(objects)
+# frame_with_boxes = yolo.draw_bounding_boxes(frame, objects)
 #
-# show_image(frame)
+# show_image(frame_with_boxes)

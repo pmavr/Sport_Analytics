@@ -7,22 +7,10 @@ from mpl_toolkits.mplot3d import Axes3D
 import time
 
 
-def plot_clusters(clrs, labels, n_clusters=2):
-    print('[INFO] Plot dominant object colors')
-    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 125, 125), (125, 0, 125)]
-    fig = plt.figure()
-    ax = Axes3D(fig)
-    for label, pix in zip(labels, clrs):
-        ax.scatter(pix[0], pix[1], pix[2], color=cc.rgb_to_hex(colors[label]))
-    ax.set_xlabel('Hue')
-    ax.set_ylabel('Saturation')
-    ax.set_zlabel('Value')
-    plt.show()
-
-input_file = "../clips/france_belgium.mp4"
+# input_file = "../clips/france_belgium.mp4"
 # input_file = "../clips/chelsea_manchester.mp4"
 # input_file = "../clips/aris_aek.mp4"
-# input_file = "../clips/belgium_japan.mp4"
+input_file = "../clips/belgium_japan.mp4"
 
 training_frames = 2
 yolo = od.ObjectDetector()
@@ -44,33 +32,41 @@ for j in range(training_frames):
         if box.shape[0] > box.shape[1]:
             boxes.append(box)
 
-team_predictor = cc.train_clustering(boxes, n_clusters=3)
+# team_predictor = cc.kmeans_train_clustering(boxes, n_clusters=3)
+team_predictor = cc.kmeans_train_clustering(boxes, n_clusters=3)
 
 vs = cv2.VideoCapture(input_file)
 
+writer = cv2.VideoWriter('../clips/output.avi', cv2.VideoWriter_fourcc('M','J','P','G'), 15.0, (1280, 720), True)
+
 success, frame = vs.read()
-frame_count = 0
+
 while success:
 
-    frame = cv2.resize(frame, (1280, 720))
+    frame_resized = cv2.resize(frame, (1280, 720))
 
-    img = od.image_preprocess(frame)
+    img = od.image_preprocess(frame_resized)
     output = yolo.predict(img)
     objects = yolo.extract_objects(output)
 
     objects = yolo.merge_overlapping_boxes(objects)
 
-    objects = yolo.determine_team(objects, team_predictor)
+    objects = yolo.kmeans_determine_team(objects, team_predictor)
 
-    frame = yolo.draw_bounding_boxes(objects)
+    frame_with_boxes = yolo.draw_bounding_boxes(frame_resized, objects)
 
-    cv2.imshow('Match Detection', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    cv2.imshow('Match Detection', frame_with_boxes)
+    # writer.write(frame_with_boxes)
+    # video play - pause - quit
+    key = cv2.waitKey(1)
+    if key == ord('q'):
         break
+    if key == ord('p'):
+        cv2.waitKey(-1)
 
     success, frame = vs.read()
-    frame += 1
 
 print("[INFO] cleaning up...")
 vs.release()
+writer.release()
 cv2.destroyAllWindows()
