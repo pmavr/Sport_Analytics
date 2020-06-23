@@ -1,11 +1,13 @@
 import numpy as np
 import cv2
-from auxiliary import ColorClusters as cc, aux
+from auxiliary import ColorClusters as cc
+from auxiliary.aux import show_image
 
 
 class ObjectDetector:
     CLASS_PERSON = 0
     CLASS_BALL = 32
+    COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255), (255, 0, 255)]
 
     def __init__(self):
         self.labels_file = "../yolo_files/yolov3.txt"
@@ -13,11 +15,9 @@ class ObjectDetector:
         self.weights_file = "../yolo_files/yolov3.weights"
         self.desired_conf = .5
         self.desired_thres = .3
+        self.frame = None
 
         self.LABELS = open(self.labels_file).read().strip().split("\n")
-
-        np.random.seed(42)
-        self.COLORS = np.random.randint(0, 255, size=(len(self.LABELS), 3), dtype="uint8")
 
         print("[INFO] Loading YOLO from disk...")
         self.net = cv2.dnn.readNetFromDarknet(self.config_file, self.weights_file)
@@ -28,15 +28,23 @@ class ObjectDetector:
         self.layer_names = [layer_names[i[0] - 1] for i in self.net.getUnconnectedOutLayers()]
 
     def predict(self, image):
-        blob = cv2.dnn.blobFromImage(image, 1 / 255.0, (416, 416), swapRB=True, crop=False)
+        self.frame = image
+        blob = cv2.dnn.blobFromImage(self.frame, 1 / 255.0, (416, 416), swapRB=True, crop=False)
         self.net.setInput(blob)
         return self.net.forward(self.layer_names)
 
-    def merge_overlapping_boxes(self, box_list, conf_list):
-        return cv2.dnn.NMSBoxes(box_list, conf_list, self.desired_conf, self.desired_thres)
+    def merge_overlapping_boxes(self, objs):
+        box_list = [box for (box, _, _, _) in objs]
+        conf_list = [conf for (_, conf, _, _) in objs]
+        ids = cv2.dnn.NMSBoxes(box_list, conf_list, self.desired_conf, self.desired_thres)
+        if ids.shape[0] == objs.__len__():
+            return objs
+        ids = ids.flatten()
+        return [objs[id] for id in ids]
 
-    def extract_objects(self, image, layer_outputs):
-        h, w = image.shape[:2]
+    def extract_objects(self, layer_outputs):
+
+        h, w = self.frame.shape[:2]
 
         boxes = []
         confidences = []
@@ -67,18 +75,41 @@ class ObjectDetector:
                     confidences.append(float(confidence))
                     classIDs.append(classID)
 
-        return boxes, confidences, classIDs
+        # return array of elements
+        # (bounding_box, pred_confidence, pred_class, valid_box)
+        # where valid box => person or soccer ball (to be refined later)
+        return [[box, conf, cls, True] for (box, conf, cls) in zip(boxes, confidences, classIDs)]
 
-    def draw_bounding_boxes(self, image, box_list, non_overlapping_boxes_IDs, conf_list, class_list):
-        if len(non_overlapping_boxes_IDs) > 0:
-            for i in non_overlapping_boxes_IDs.flatten():
-                (x, y) = (box_list[i][0], box_list[i][1])
-                (w, h) = (box_list[i][2], box_list[i][3])
-                color = [int(c) for c in self.COLORS[class_list[i]]]
+    def determine_team(self, objs, predictor):
+
+        bounding_boxes = [self.to_image(b) for (b, _, _, _) in objs]
+
+        team_predictions = cc.predict_team(bounding_boxes, predictor)
+        for idx, (obj, team_prediction) in enumerate(zip(objs, team_predictions)):
+            (_, _, cls, _) = obj
+            if cls == self.CLASS_BALL:
+                objs[idx][2] = 3
+            elif cls != self.CLASS_PERSON:
+                objs[idx][3] = False
+            else:
+                objs[idx][2] = team_prediction
+
+        return objs
+
+    def draw_bounding_boxes(self, objs):
+        image = self.frame
+        for (box, conf, cls, valid_box) in objs:
+            if valid_box:
+                (x, y) = (box[0], box[1])
+                (w, h) = (box[2], box[3])
+                color = self.COLORS[cls]
                 cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
-                text = "{}: {:.4f}".format(self.LABELS[class_list[i]], conf_list[i])
-                cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                # text = "{}: {:.4f}".format(self.LABELS[class_list[i]], conf_list[i])
+                cv2.putText(image, '', (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         return image
+
+    def to_image(self, box):
+        return self.frame[box[1]:box[1] + box[3], box[0]:box[0] + box[2]]
 
 
 def image_preprocess(image):
@@ -93,77 +124,48 @@ def image_preprocess(image):
 
     return cv2.bitwise_and(image, image, mask=mask)
 
-
-def determine_team(boxes, classes):
-    pass
-
-
-input_file = "../clips/belgium_japan.mp4"
-yolo = ObjectDetector()
-
-vs = cv2.VideoCapture(input_file)
-
-boxes = []
-idx = 0
-for j in range(2):
-    success, frame = vs.read()
-    frame = cv2.resize(frame, (1280, 720))
-
-    img = image_preprocess(frame)
-    output = yolo.predict(img)
-    box_list, conf_list, class_list = yolo.extract_objects(frame, output)
-
-    for b in box_list:
-        box = frame[b[1]:b[1] + b[3], b[0]:b[0] + b[2]]
-        if box.shape[0] > box.shape[1]:
-            boxes.append(box)
-            # cv2.imwrite('../tmp/{}.jpg'.format(idx), box)
-            # idx += 1
-
-a, b = cc.train_clustering(boxes, n_clusters=3)
-
 #
+# input_file = "../clips/belgium_japan.mp4"
+# training_frames = 2
+# yolo = ObjectDetector()
 #
+# vs = cv2.VideoCapture(input_file)
 #
+# boxes = []
+# idx = 0
+# for j in range(training_frames):
+#     success, frame = vs.read()
+#     frame = cv2.resize(frame, (1280, 720))
 #
+#     img = image_preprocess(frame)
+#     output = yolo.predict(img)
+#     objects = yolo.extract_objects(output)
 #
-# # class_list = determine_team(box_list, class_list)
+#     for (b, _, _, _) in objects:
+#         box = yolo.to_image(b)
+#         if box.shape[0] > box.shape[1]:
+#             boxes.append(box)
+#             # cv2.imwrite('../tmp/{}.jpg'.format(idx), box)
+#             # idx += 1
 #
-# non_overlapping_boxes_IDs = yolo.merge_overlapping_boxes(box_list, conf_list)
+# team_predictor = cc.train_clustering(boxes, n_clusters=3)
 #
-# frame = yolo.draw_bounding_boxes(frame, box_list, non_overlapping_boxes_IDs, conf_list, class_list)
+# vs.release()
 #
-# aux.show_image(frame)
+# ###############################################################
+# ###############################################################
 #
-#
-#
-#
-# #
-# # imgs = []
-# # tmp = []
-# # keep = []
-# # h = 0
-# #
-# for idx, b in enumerate(box_list):
-#     cv2.imwrite('../tmp/{}.jpg'.format(idx), frame[b[1]:b[1] + b[3], b[0]:b[0] + b[2]])
-#
-#
-#
-#
-#
-#
-#
-# frame = cv2.imread('../clips/frame2.jpg')
+# frame = cv2.imread('../clips/frame3.jpg')
 # frame = cv2.resize(frame, (1280, 720))
 #
 # img = image_preprocess(frame)
 # output = yolo.predict(img)
-# box_list, conf_list, class_list = yolo.extract_objects(frame, output)
+# objects = yolo.extract_objects(output)
 #
-# class_list = determine_team(box_list, class_list)
+# objects = yolo.merge_overlapping_boxes(objects)
 #
-# non_overlapping_boxes_IDs = yolo.merge_overlapping_boxes(box_list, conf_list)
+# objects = yolo.determine_team(objects, team_predictor)
 #
-# frame = yolo.draw_bounding_boxes(frame, box_list, non_overlapping_boxes_IDs, conf_list, class_list)
+# frame = yolo.draw_bounding_boxes(objects)
 #
-# aux.show_image(frame)
+# show_image(frame)

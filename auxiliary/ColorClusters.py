@@ -129,15 +129,8 @@ def find_dominant_color(img, n_dominant_colors=2):
     return hsv_colors
 
 
-def predict_team(images, predictor):
-    filtered_images = [remove_green(image) for image in images]
-    dominant_colors = []
-    clusters = 1
-    for filtered_image in filtered_images:
-        dc = ColorClusters(filtered_image, clusters)
-        col = dc.colorClusters()[0]
-        col = rgb_to_hsv(col[0], col[1], col[2])
-        dominant_colors.append(col)
+def predict_team(imgs, predictor):
+    dominant_colors = [find_dominant_color(img) for img in imgs]
+    dominant_colors = [np.array([c[0][0] + c[1][0]]) for c in dominant_colors]
+    return predictor.predict(dominant_colors)
 
-    pred = predictor.predict(np.array(dominant_colors))
-    return pred
