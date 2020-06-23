@@ -98,15 +98,30 @@ def determine_team(boxes, classes):
     pass
 
 
-#
-# yolo = ObjectDetector()
-#
-# frame = cv2.imread('../clips/frame4.jpg')
-# frame = cv2.resize(frame, (1280, 720))
-#
-# img = image_preprocess(frame)
-# output = yolo.predict(img)
-# box_list, conf_list, class_list = yolo.extract_objects(frame, output)
+input_file = "../clips/belgium_japan.mp4"
+yolo = ObjectDetector()
+
+vs = cv2.VideoCapture(input_file)
+
+boxes = []
+idx = 0
+for j in range(2):
+    success, frame = vs.read()
+    frame = cv2.resize(frame, (1280, 720))
+
+    img = image_preprocess(frame)
+    output = yolo.predict(img)
+    box_list, conf_list, class_list = yolo.extract_objects(frame, output)
+
+    for b in box_list:
+        box = frame[b[1]:b[1] + b[3], b[0]:b[0] + b[2]]
+        if box.shape[0] > box.shape[1]:
+            boxes.append(box)
+            # cv2.imwrite('../tmp/{}.jpg'.format(idx), box)
+            # idx += 1
+
+a, b = cc.train_clustering(boxes, n_clusters=3)
+
 #
 #
 #
@@ -152,4 +167,3 @@ def determine_team(boxes, classes):
 # frame = yolo.draw_bounding_boxes(frame, box_list, non_overlapping_boxes_IDs, conf_list, class_list)
 #
 # aux.show_image(frame)
-
