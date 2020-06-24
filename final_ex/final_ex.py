@@ -43,7 +43,7 @@ def court_detector_pipeline(image):
     for line in ref_ver_lines:
         lines.append(line)
 
-    return hl.get_intersection_points(frame, lines)
+    return hl.get_intersection_points(lines)
 
 
 # input_file = "../clips/france_belgium.mp4"

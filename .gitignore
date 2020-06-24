@@ -1,5 +1,7 @@
 __pycache__/
 tmp/
+test/
 
 *.weights
 *.mp4
+/test/
