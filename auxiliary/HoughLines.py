@@ -1,7 +1,5 @@
 import numpy as np
 import cv2
-import operator, math
-from scipy.spatial import distance
 from auxiliary import aux
 import itertools
 
@@ -72,15 +70,10 @@ def houghLines(image, coloured_image, threshold=95):
     if houghLines is not None:
         houghLines = houghLines.reshape(houghLines.shape[0], houghLines.shape[2])
         drawhoughLinesOnImage(houghLinesImage, houghLines)
-    # tmp = np.float32(houghLinesImage)
-    # dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
 
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_GRAY2RGB)
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_BGR2RGB)
     orginalImageWithHoughLines = blend_images(houghLinesImage, coloured_image)
-    # orginalImageWithHoughLines[dst > 0.01 * dst.max()] = [0, 0, 255]
-
-    # aux.show_image(orginalImageWithHoughLines)
 
     return houghLines, orginalImageWithHoughLines
 
@@ -95,13 +88,9 @@ def houghLinesP(image, coloured_image):
         for l in houghLines:
             cv2.line(houghLinesImage, (l[0], l[1]), (l[2], l[3]), (255, 255, 255), 2, cv2.LINE_AA)
 
-    # tmp = np.float32(houghLinesImage)
-    # dst = cv2.cornerHarris(tmp, 10, 15, 0.04)
-
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_GRAY2RGB)
     houghLinesImage = cv2.cvtColor(houghLinesImage, cv2.COLOR_BGR2RGB)
     orginalImageWithHoughLines = blend_images(houghLinesImage, coloured_image)
-    # orginalImageWithHoughLines[dst>0.01*dst.max()]=[0,0,255]
     return houghLines, orginalImageWithHoughLines
 
 
@@ -121,7 +110,6 @@ def image_preprocess(image):
     img = aux.remove_white_dots(img, iterations=2)
     img = cv2.erode(img, kernel, iterations=1)
     img = cv2.Canny(img, 500, 200)
-    # img = remove_white_dots(img, iterations=2)
     return img
 
 
@@ -133,9 +121,6 @@ def lines_are_close(midA, midB, rtol):
 def refine_lines(_lines, rtol=.1):
     _lines = [[l, get_line_midpoints(l[0], l[1]), True] for l in _lines]
 
-    # for (current_line, current_mid, current_keep) in _lines:
-    #     cv2.line(frame, current_mid, current_mid, (255, 255, 255), 20)
-
     for current_idx, (current_line, current_mid, current_keep) in enumerate(_lines):
         if not current_keep:
             continue
@@ -145,14 +130,7 @@ def refine_lines(_lines, rtol=.1):
             if lines_are_close(current_mid, checked_mid, rtol):
                 _lines[checked_idx][2] = False
 
-    refine_lines = [line for (line, _, keep) in _lines if keep]
-
-    # for (current_line, current_mid, current_keep) in _lines:
-    #     if current_keep:
-    #         cv2.line(frame, current_mid, current_mid, (255, 255, 255), 20)
-    #         draw_line(frame, current_line[0], current_line[1])
-
-    return refine_lines
+    return [line for (line, _, keep) in _lines if keep]
 
 
 def find_intersection(l1, l2):
@@ -213,69 +191,3 @@ def get_court_intersection_points():
     #
     intersection_points = get_intersection_points(lines)
     return [p for p in intersection_points if p is not None]
-
-
-frame = cv2.imread('../clips/frame4.jpg')
-frame_resized = cv2.resize(frame, (1280, 720))
-
-img = image_preprocess(frame_resized)
-
-lines, image_with_lines = houghLines(img, frame_resized)
-
-hor_lines = list()
-ver_lines = list()
-
-for line in lines:
-    rho, theta = line
-    if is_horizontal(theta):
-        hor_lines.append(line)
-    elif is_vertical(theta):
-        ver_lines.append(line)
-
-ref_ver_lines = refine_lines(ver_lines, rtol=.125)
-ref_hor_lines = refine_lines(hor_lines, rtol=.125)
-
-# if ref_hor_lines is not None:
-#     drawhoughLinesOnImage(frame, ref_hor_lines)
-# if ref_ver_lines is not None:
-#     drawhoughLinesOnImage(frame, ref_ver_lines)
-
-# aux.show_image(frame)
-lines = []
-for line in ref_hor_lines:
-    lines.append(line)
-for line in ref_ver_lines:
-    lines.append(line)
-
-intersection_points = get_intersection_points(lines)
-intersection_points = [p for p in intersection_points if p is not None and p[0]>=0 and p[1]>=0]
-
-for p in intersection_points:
-    cv2.line(frame_resized, (int(p[0]), int(p[1])), (int(p[0]), int(p[1])), (255, 255, 0), 10)
-
-court_intersection_points = get_court_intersection_points()
-
-
-court_image = cv2.imread('../clips/court.jpg')
-
-src = np.array([[914., 0.], [1091., 0.], [914., 557.7078881563991], [1091., 129.50011366219587]], np.float32)
-# dst = np.array([[685.92956318, 213.76928535], [1144.82313169, 181.66346822493117], [1004.04196727, 355.40768528], [1555.15512238, 307.12398654]])
-
-# src = np.array([[914, 0], [1091, 0], [914, 244], [1091, 244]], np.float32)
-dst = np.array([[459.0645161112684, 143.2217852219327], [765.7319784379197, 121.76624489962595],
-                [1110.6788355551557, 433.11638665653606], [899.7333270184508, 162.6960601898524]], np.float32)
-
-homography_matrix = cv2.getPerspectiveTransform(src, dst)
-
-im_out = cv2.warpPerspective(court_image, homography_matrix, (frame_resized.shape[1], frame_resized.shape[0]))
-
-im_out = cv2.cvtColor(im_out, cv2.COLOR_BGR2GRAY)
-_, mask = cv2.threshold(im_out, 10, 255, cv2.THRESH_BINARY)
-mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-
-final_image = blend_images(mask, frame_resized)
-
-
-
-# aux.show_image(im_out)
-print()

@@ -71,12 +71,12 @@ for j in range(training_frames):
         if box.shape[0] > box.shape[1]:
             boxes.append(box)
 
-# team_predictor = cc.kmeans_train_clustering(boxes, n_clusters=3)
 team_predictor = cc.kmeans_train_clustering(boxes, n_clusters=3)
 
 vs = cv2.VideoCapture(input_file)
 
-writer = cv2.VideoWriter('../clips/output.avi', cv2.VideoWriter_fourcc('M','J','P','G'), 15.0, (1280, 720), True)
+# Uncomment in order to output to video
+# writer = cv2.VideoWriter('../clips/video_with_predictions.avi', cv2.VideoWriter_fourcc('M','J','P','G'), 15.0, (1280, 720), True)
 
 success, frame = vs.read()
 
@@ -107,5 +107,5 @@ while success:
 
 print("[INFO] cleaning up...")
 vs.release()
-writer.release()
+# writer.release()
 cv2.destroyAllWindows()

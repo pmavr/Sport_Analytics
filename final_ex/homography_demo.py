@@ -1,9 +1,8 @@
 import numpy as np
 import cv2
 from auxiliary.aux import show_image
-from auxiliary.HoughLines import image_preprocess, is_horizontal, is_vertical, refine_lines, houghLines, get_court_intersection_points, get_intersection_points, \
-    blend_images
-
+from auxiliary.HoughLines import image_preprocess, is_horizontal, is_vertical, refine_lines, houghLines, \
+    get_court_intersection_points, get_intersection_points, blend_images
 
 frame = cv2.imread('../clips/frame4.jpg')
 frame_resized = cv2.resize(frame, (1280, 720))
@@ -25,12 +24,6 @@ for line in lines:
 ref_ver_lines = refine_lines(ver_lines, rtol=.125)
 ref_hor_lines = refine_lines(hor_lines, rtol=.125)
 
-# if ref_hor_lines is not None:
-#     drawhoughLinesOnImage(frame, ref_hor_lines)
-# if ref_ver_lines is not None:
-#     drawhoughLinesOnImage(frame, ref_ver_lines)
-
-# aux.show_image(frame)
 lines = []
 for line in ref_hor_lines:
     lines.append(line)
@@ -38,13 +31,12 @@ for line in ref_ver_lines:
     lines.append(line)
 
 intersection_points = get_intersection_points(lines)
-intersection_points = [p for p in intersection_points if p is not None and p[0]>=0 and p[1]>=0]
+intersection_points = [p for p in intersection_points if p is not None and p[0] >= 0 and p[1] >= 0]
 
 for p in intersection_points:
     cv2.line(frame_resized, (int(p[0]), int(p[1])), (int(p[0]), int(p[1])), (255, 255, 0), 10)
 
 court_intersection_points = get_court_intersection_points()
-
 
 court_image = cv2.imread('../clips/court.jpg')
 
@@ -64,4 +56,3 @@ mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
 final_image = blend_images(mask, frame_resized)
 
 show_image(final_image)
-

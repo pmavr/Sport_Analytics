@@ -1,9 +1,8 @@
 import cv2
-from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from auxiliary.aux import show_image
 
 
 class ColorClusters:
@@ -105,14 +104,6 @@ def kmeans_train_clustering(imgs, n_clusters=2):
     return KMeans(n_clusters=n_clusters).fit(dominant_colors)
 
 
-# def agglo_train_clustering(imgs, n_clusters=2):
-#     print('[INFO] Train team predictor Agglomerative clustering...')
-#
-#     dominant_colors = [find_dominant_color(img) for img in imgs]
-#     dominant_colors = [np.array([c[0][0] + c[1][0]]) for c in dominant_colors]
-#     return AgglomerativeClustering(n_clusters=n_clusters, linkage="average").fit(dominant_colors)
-
-
 def find_dominant_color(img, n_dominant_colors=2):
     im = remove_green(img)
     im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
@@ -133,9 +124,3 @@ def kmeans_predict_team(img, predictor):
     pred = predictor.predict(dominant_color)
     return np.asscalar(pred)
 
-
-# def agglo_predict_team(imgs, predictor):
-#     dominant_colors = [find_dominant_color(img) for (_, img) in imgs]
-#     dominant_colors = [np.array([int(c[0][0]) + int(c[1][0])]) for c in dominant_colors]
-#     pred = predictor.fit_predict(dominant_colors)
-#     return [[idx, p] for p, (idx, _) in zip(pred, imgs)]

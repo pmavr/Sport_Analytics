@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 from auxiliary import ColorClusters as cc
-from auxiliary.aux import show_image
 
 
 class ObjectDetector:
@@ -16,8 +15,6 @@ class ObjectDetector:
         self.desired_conf = .5
         self.desired_thres = .3
         self.frame = None
-
-        self.LABELS = open(self.labels_file).read().strip().split("\n")
 
         print("[INFO] Loading YOLO from disk...")
         self.net = cv2.dnn.readNetFromDarknet(self.config_file, self.weights_file)
@@ -89,22 +86,6 @@ class ObjectDetector:
                 objs[idx][2] = cc.kmeans_predict_team(self.to_image(box), predictor)
         return objs
 
-    # def agglo_determine_team(self, objs, predictor):
-    #
-    #     person_bounding_boxes = [[idx, self.to_image(b)] for (idx, b, _, c, _) in objs if c == self.CLASS_PERSON]
-    #
-    #     team_predictions = cc.agglo_predict_team(person_bounding_boxes, predictor)
-    #
-    #     objs.sort(key=lambda i: i[0])
-    #     for (idx, _, _, cls, _) in objs:
-    #         if cls == self.CLASS_BALL:
-    #             objs[idx][3] = 3
-    #
-    #     for (idx, pred) in team_predictions:
-    #         objs[idx][3] = pred
-    #
-    #     return objs
-
     def draw_bounding_boxes(self, image, objs):
 
         nimage = np.copy(image)
@@ -132,48 +113,3 @@ def image_preprocess(image):
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((50, 50), np.uint8))
 
     return cv2.bitwise_and(image, image, mask=mask)
-
-# input_file = "../clips/belgium_japan.mp4"
-# training_frames = 2
-# yolo = ObjectDetector()
-#
-# vs = cv2.VideoCapture(input_file)
-#
-# boxes = []
-# idx = 0
-# for j in range(training_frames):
-#     success, frame = vs.read()
-#     frame = cv2.resize(frame, (1280, 720))
-#
-#     img = image_preprocess(frame)
-#     output = yolo.predict(img)
-#     objects = yolo.extract_objects(output)
-#
-#     for (b, _, _, _) in objects:
-#         box = yolo.to_image(b)
-#         if box.shape[0] > box.shape[1]:
-#             boxes.append(box)
-#             # cv2.imwrite('../tmp/{}.jpg'.format(idx), box)
-#             # idx += 1
-#
-# team_predictor = cc.train_clustering(boxes, n_clusters=3)
-#
-# vs.release()
-#
-# ###############################################################
-# ###############################################################
-#
-# frame = cv2.imread('../clips/frame5.jpg')
-# frame = cv2.resize(frame, (1280, 720))
-#
-# img = image_preprocess(frame)
-# output = yolo.predict(img)
-# objects = yolo.extract_objects(output)
-#
-# objects = yolo.merge_overlapping_boxes(objects)
-#
-# objects = yolo.determine_team(objects, team_predictor)
-#
-# frame_with_boxes = yolo.draw_bounding_boxes(frame, objects)
-#
-# show_image(frame_with_boxes)
