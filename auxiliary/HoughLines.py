@@ -175,29 +175,15 @@ def find_intersection(l1, l2):
     return np.array([x, y])
 
 
-def draw_intersection_points(coloured_image, lines):
+def get_intersection_points(coloured_image, lines):
     line_pairs = list(itertools.combinations(lines, 2))
     intersection_points = []
 
     for pair in line_pairs:
         intersection_points.append(find_intersection(pair[0], pair[1]))
 
-    for p in intersection_points:
-        if p is not None:
-            cv2.line(coloured_image, (int(p[0]), int(p[1])), (int(p[0]), int(p[1])), (255, 255, 0), 10)
+    return intersection_points
 
-    # mask = cv2.cvtColor(intersection_mask, cv2.COLOR_BGR2GRAY)
-
-    # # mask = intersection_mask
-    # mask = cv2.bitwise_and(intersection_mask, corner_mask)
-    # mask = cv2.dilate(mask, np.ones((2, 2), np.uint8), iterations=15)
-    # mask = cv2.erode(mask, np.ones((4, 4), np.uint8), iterations=5)
-    # mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-    # indices = np.where(mask == 255)
-    # mask[indices[0], indices[1], :] = [0, 0, 255]
-
-    # return blend_images(mask, coloured_image)
-    return coloured_image
 
 #
 # frame = cv2.imread('../clips/frame4.jpg')

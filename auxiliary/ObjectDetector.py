@@ -37,7 +37,7 @@ class ObjectDetector:
         box_list = [box for (box, _, _, _) in objs]
         conf_list = [conf for (_, conf, _, _) in objs]
         ids = cv2.dnn.NMSBoxes(box_list, conf_list, self.desired_conf, self.desired_thres)
-        if ids.shape[0] == objs.__len__():
+        if ids.__len__() == objs.__len__():
             return objs
         ids = ids.flatten()
         return [objs[id] for id in ids]

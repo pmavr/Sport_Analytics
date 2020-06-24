@@ -45,9 +45,14 @@ while success:
     for line in ref_ver_lines:
         lines.append(line)
 
-    intersection_points = hl.draw_intersection_points(frame, lines)
+    intersection_points = hl.get_intersection_points(frame, lines)
 
-    cv2.imshow('Match Detection', intersection_points)
+    for p in intersection_points:
+        if p is not None:
+            cv2.line(frame, (int(p[0]), int(p[1])), (int(p[0]), int(p[1])), (255, 255, 0), 10)
+
+
+    cv2.imshow('Match Detection', frame)
 
     # video play - pause - quit
     key = cv2.waitKey(1)

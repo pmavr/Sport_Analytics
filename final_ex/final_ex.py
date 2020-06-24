@@ -1,10 +1,49 @@
-import numpy as np
-import cv2
-from auxiliary import ColorClusters as cc, aux
-from auxiliary import ObjectDetector as od
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import time
+import cv2, \
+    numpy as np
+from auxiliary import ColorClusters as cc,\
+    ObjectDetector as od, \
+    HoughLines as hl
+
+
+def object_detector_pipeline(image):
+    frame_o = np.copy(image)
+    img_for_object_detector = od.image_preprocess(frame_o)
+
+    output = yolo.predict(img_for_object_detector)
+    objects = yolo.extract_objects(output)
+
+    refined_objects = yolo.merge_overlapping_boxes(objects)
+
+    final_objects = yolo.kmeans_determine_team(refined_objects, team_predictor)
+    return  final_objects
+
+
+def court_detector_pipeline(image):
+    frame_c = np.copy(image)
+    img_c = hl.image_preprocess(frame_c)
+    lines, img_with_hough_lines = hl.houghLines(img_c, frame_c)
+
+    hor_lines = []
+    ver_lines = []
+
+    if lines is not None:
+        for line in lines:
+            rho, theta = line
+            if hl.is_horizontal(theta):
+                hor_lines.append(line)
+            elif hl.is_vertical(theta):
+                ver_lines.append(line)
+
+    ref_hor_lines = hl.refine_lines(hor_lines, rtol=.125)
+    ref_ver_lines = hl.refine_lines(ver_lines, rtol=.125)
+
+    lines = []
+    for line in ref_hor_lines:
+        lines.append(line)
+    for line in ref_ver_lines:
+        lines.append(line)
+
+    return hl.get_intersection_points(frame, lines)
 
 
 # input_file = "../clips/france_belgium.mp4"
@@ -45,15 +84,15 @@ while success:
 
     frame_resized = cv2.resize(frame, (1280, 720))
 
-    img = od.image_preprocess(frame_resized)
-    output = yolo.predict(img)
-    objects = yolo.extract_objects(output)
+    points = court_detector_pipeline(frame_resized)
 
-    objects = yolo.merge_overlapping_boxes(objects)
+    identified_objects = object_detector_pipeline(frame_resized)
 
-    objects = yolo.kmeans_determine_team(objects, team_predictor)
+    frame_with_boxes = yolo.draw_bounding_boxes(frame_resized, identified_objects)
 
-    frame_with_boxes = yolo.draw_bounding_boxes(frame_resized, objects)
+    for p in points:
+        if p is not None:
+            cv2.line(frame_with_boxes, (int(p[0]), int(p[1])), (int(p[0]), int(p[1])), (255, 255, 0), 10)
 
     cv2.imshow('Match Detection', frame_with_boxes)
     # writer.write(frame_with_boxes)
