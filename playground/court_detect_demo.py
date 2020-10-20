@@ -5,8 +5,8 @@ import numpy as np
 from auxiliary import aux
 
 def detect_court(image):
-    lower_color = np.array([35, 100, 60])
-    upper_color = np.array([75, 255, 200])
+    lower_color = np.array([35, 75, 60])
+    upper_color = np.array([65, 255, 200])
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower_color, upper_color)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel=np.ones((20, 20), np.uint8))
@@ -26,8 +26,8 @@ def detect_white_line_pixels(image):
 
 
 # input_file = "../clips/belgium_japan.mp4"
-input_file = "../clips/aris_aek.mp4"
-# input_file = "../clips/chelsea_pmanchester.mp4"
+# input_file = "../clips/aris_aek.mp4"
+input_file = "../clips/chelsea_manchester.mp4"
 vs = cv2.VideoCapture(input_file)
 success, frame = vs.read()
 
@@ -36,7 +36,7 @@ while success:
 
     img_c = detect_court(img)
 
-    img_c = detect_white_line_pixels(img_c)
+    # img_c = detect_white_line_pixels(img_c)
 
     # show dual images
     concat = np.concatenate((img,img_c), axis=1)
