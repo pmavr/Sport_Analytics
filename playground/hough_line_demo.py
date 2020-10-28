@@ -4,14 +4,16 @@ import math
 from auxiliary import HoughLines as hl, aux
 from numpy import ones,vstack
 from numpy.linalg import lstsq
-from sklearn import cluster
+from sklearn.neighbors import KernelDensity
+from scipy.signal import argrelextrema
+import sys
 
 
 def get_coef_intercept(point1, point2):
     points = [point1, point2]
     x_coords, y_coords = zip(*points)
     A = vstack([x_coords, ones(len(x_coords))]).T
-    m, c = lstsq(A, y_coords)[0]
+    m, c = lstsq(A, y_coords, rcond=None)[0]
     return round(m,2), round(c,2)
 
 
@@ -43,16 +45,39 @@ def houghLinesP(image):
     return houghLines, houghLinesImage
 
 
+def get_line_boundaries(values, range):
+
+    _values = values.reshape(-1, 1)
+
+    kde = KernelDensity(kernel='gaussian', bandwidth=3).fit(_values)
+
+    s = np.linspace(0, range)
+
+    e = kde.score_samples(s.reshape(-1, 1))
+
+    mi = argrelextrema(e, np.less)[0]
+    return s[mi]
+
+
 def cluster_by_distance(lines, max_distance):
 
+    line_intercept_list = [i for (_, _, _, i) in lines]
+    line_intercept_list = np.array(line_intercept_list)
+    range = max(line_intercept_list)
+
+    boundaries = get_line_boundaries(line_intercept_list, range)
+
+    # Cluster lines
+    boundaries_iter = iter(boundaries)
+    boundary = next(boundaries_iter, sys.maxsize)
     clusters = [[lines[0]]]
     for line in lines[1:]:
-        _, _, _, cur_intercept = line
-        _, _, _, prev_intercept = clusters[-1][-1]
-        if abs(cur_intercept - prev_intercept) <= max_distance:
+        _, _, _, intercept = line
+        if intercept <= boundary:
             clusters[-1].append(line)
         else:
             clusters.append([line])
+            boundary = next(boundaries_iter, sys.maxsize)
     return clusters
 
 
@@ -76,8 +101,7 @@ while success:
     houghLines = cv2.HoughLinesP(img_c,
                                  rho=1,  # Distance resolution of the accumulator in pixels.
                                  theta=np.pi / 180,  # Angle resolution of the accumulator in radians.
-                                 threshold=100,
-                                 # Accumulator threshold parameter. Only those lines are returned that get enough votes ( >threshold ).
+                                 threshold=100,      # Accumulator threshold parameter. Only those lines are returned that get enough votes ( >threshold ).
                                  minLineLength=75,  # Minimum line length. Line segments shorter than that are rejected.
                                  maxLineGap=75  # Maximum allowed gap between points on the same line to link them.
                                  )
