@@ -12,6 +12,21 @@ from scipy.signal import argrelextrema
 from auxiliary import aux
 
 
+def draw_lines_on_frame(lines, frame):
+    tmp_frame = np.copy(frame)
+    m = 1500
+    for vx, vy, x0, y0 in lines:
+        cv2.line(tmp_frame, (x0 - m * vx[0], y0 - m * vy[0]), (x0 + m * vx[0], y0 + m * vy[0]), (0, 0, 255), 3)
+    return tmp_frame
+
+
+def draw_hough_lines_on_frame(lines, frame):
+    tmp_frame = np.copy(frame)
+    for p1, p2, x0, y0 in lines:
+        cv2.line(tmp_frame, p1, p2, (0, 0, 255), 1)
+    return tmp_frame
+
+
 def detect_court(video_frame):
     """
     Detects the area corresponding to the soccer field (green colour spectrum)
@@ -46,14 +61,14 @@ def get_hough_lines(video_frame):
         # Minimum line length. Line segments shorter than that are rejected.
         maxLineGap=75  # Maximum allowed gap between points on the same line to link them.
         )
-    if hough_lines is None:
-        return None
-    else:
+
+    if hough_lines is not None:
         hough_lines = hough_lines.reshape(hough_lines.shape[0], hough_lines.shape[2])
-        return hough_lines
+
+    return hough_lines
 
 
-def get_coefficient_and_intercept(point1, point2):
+def get_slope_and_intercept(point1, point2):
     points = [point1, point2]
     x_coords, y_coords = zip(*points)
     A = vstack([x_coords, ones(len(x_coords))]).T
@@ -65,29 +80,67 @@ def get_lines(hough_lines):
     lines = []
     for point1_x, point1_y, point2_x, point2_y in hough_lines:
         line_endpoint1, line_endpoint2 = (point1_x, point1_y), (point2_x, point2_y)
-        coef, intercept = get_coefficient_and_intercept(line_endpoint1, line_endpoint2)
-        lines.append([line_endpoint1, line_endpoint2, coef, intercept])
+        slope, intercept = get_slope_and_intercept(line_endpoint1, line_endpoint2)
+        lines.append([line_endpoint1, line_endpoint2, slope, intercept])
 
     return lines
 
 
-def divide_lines_by_perpendicularity(lines):
+def divide_lines_by_slope(lines):
 
     # group A lines are perpendicular to group B lines
     line_group_A, line_group_B = [], []
 
     for line in lines:
-        line_group_A.append(line) if line[2] > 0 else line_group_B.append(line)
+        slope = line[2]
+        line_group_A.append(line) if slope > 0 else line_group_B.append(line)
 
     return line_group_A, line_group_B
 
 
-def get_line_boundaries(values, range):
-    _values = values.reshape(-1, 1)
+def find_outliers(values, bandwidth=5, outlier_thresh=.01):
+    values = np.array(values)
+    values = values.reshape(-1, 1)
 
-    kde = KernelDensity(kernel='gaussian', bandwidth=3).fit(_values)
+    kde = KernelDensity(kernel='gaussian', bandwidth=bandwidth).fit(values)
+    scores = kde.score_samples(values)
+    threshold = np.quantile(scores, outlier_thresh)
 
-    s = np.linspace(0, range)
+    index = np.where(scores <= threshold)
+    return list(index[0])
+
+
+def remove_outliers_by_slope(lines):
+    slopes = [slope for (_, _, slope, _) in lines]
+    slope_outlier_indexes = find_outliers(slopes, bandwidth=.5, outlier_thresh=.01)
+    lines_without_outliers = [line for idx, line in enumerate(lines) if idx not in slope_outlier_indexes]
+    return lines_without_outliers
+
+
+def remove_outliers_by_intercept(lines):
+    intercepts = [intercept for (_, _, _, intercept) in lines]
+    intercept_outlier_indexes = find_outliers(intercepts, bandwidth=.5, outlier_thresh=.05)
+    lines_without_outliers = [line for idx, line in enumerate(lines) if idx not in intercept_outlier_indexes]
+    return lines_without_outliers
+
+
+def remove_outlier_lines(lines):
+    lines_without_slope_outliers = remove_outliers_by_slope(lines)
+
+    lines_without_outliers = remove_outliers_by_intercept(lines_without_slope_outliers)
+
+    return lines_without_outliers
+
+
+def find_group_boundaries(values):
+    values = np.array(values)
+    values = values.reshape(-1, 1)
+    max_value = max(values)
+    min_value = min(values)
+
+    kde = KernelDensity(kernel='gaussian', bandwidth=5).fit(values)
+
+    s = np.linspace(min_value, max_value)
 
     e = kde.score_samples(s.reshape(-1, 1))
 
@@ -95,35 +148,26 @@ def get_line_boundaries(values, range):
     return s[mi]
 
 
-def cluster_lines(lines, ranges):
-    lines = sorted(lines, key=itemgetter(3))
+def batch_lines(lines, intercept_groups):
+    intercept_criterion = itemgetter(3)
+    lines = sorted(lines, key=intercept_criterion)
 
-    ranges_iter = iter(ranges)
-    range = next(ranges_iter, sys.maxsize)
-    clusters = [[lines[0]]]
+    intercept_groups_iter = iter(intercept_groups)
+    group = next(intercept_groups_iter, sys.maxsize)
+    merged_lines = [[lines[0]]]
+
     for line in lines[1:]:
         _, _, _, intercept = line
-        if intercept <= range:
-            clusters[-1].append(line)
+        if intercept <= group:
+            merged_lines[-1].append(line)
         else:
-            clusters.append([line])
-            range = next(ranges_iter, sys.maxsize)
-    return clusters
+            merged_lines.append([line])
+            group = next(intercept_groups_iter, sys.maxsize)
+
+    return merged_lines
 
 
-def group_duplicate_lines(lines):
-    lines_intercepts = [i for (_, _, _, i) in lines]
-    lines_intercepts = np.array(lines_intercepts)
-    max_intercept_value = max(lines_intercepts)
-
-    cluster_criteria = get_line_boundaries(lines_intercepts, max_intercept_value)
-
-    line_groups = cluster_lines(lines, cluster_criteria)
-
-    return line_groups
-
-
-def remove_duplicate_lines(grouped_duplicates):
+def merge_lines_within_batches(grouped_duplicates):
     fit_lines = []
     for group in grouped_duplicates:
         tmp1 = [x for x, _, _, _ in group]
@@ -134,19 +178,16 @@ def remove_duplicate_lines(grouped_duplicates):
     return fit_lines
 
 
-def draw_lines_on_frame(lines, frame):
-    tmp_frame = np.copy(frame)
-    m = 1500
-    for vx, vy, x0, y0 in lines:
-        cv2.line(tmp_frame, (x0 - m * vx[0], y0 - m * vy[0]), (x0 + m * vx[0], y0 + m * vy[0]), (0, 0, 255), 1)
-    return tmp_frame
+def merge_similar_lines(lines):
+    intercepts = [intercept for (_, _, _, intercept) in lines]
 
+    intercept_groups = find_group_boundaries(intercepts)
 
-def draw_hough_lines_on_frame(lines, frame):
-    tmp_frame = np.copy(frame)
-    for p1, p2, x0, y0 in lines:
-        cv2.line(tmp_frame, p1, p2, (0, 0, 255), 1)
-    return tmp_frame
+    batches = batch_lines(lines, intercept_groups)
+
+    merged_lines = merge_lines_within_batches(batches)
+
+    return merged_lines
 
 
 def detect_court_lines(video_frame):
@@ -158,15 +199,15 @@ def detect_court_lines(video_frame):
 
     lines = get_lines(hough_lines)
 
-    lines_A, lines_B = divide_lines_by_perpendicularity(lines)
+    lines_a, lines_b = divide_lines_by_slope(lines)
 
-    lines_A_grouped_duplicates = group_duplicate_lines(lines_A)
-    lines_B_grouped_duplicates = group_duplicate_lines(lines_B)
+    lines_a = remove_outlier_lines(lines_a)
+    lines_b = remove_outlier_lines(lines_b)
 
-    lines_A_refined = remove_duplicate_lines(lines_A_grouped_duplicates)
-    lines_B_refined = remove_duplicate_lines(lines_B_grouped_duplicates)
+    lines_a_refined = merge_similar_lines(lines_a)
+    lines_b_refined = merge_similar_lines(lines_b)
 
-    return lines_A_refined + lines_B_refined
+    return lines_a_refined + lines_b_refined
 
 
 def identify_intersection_points_for_court_lines(court_lines):
@@ -189,7 +230,14 @@ if __name__ == "__main__":
 
         # court_lines_intersection_points = identify_intersection_points_for_court_lines(court_lines)
 
-        video_source.display_frame(video_frame)
+        # video_source.display_frame(video_frame)
+        cv2.imshow('Playing video...', video_frame)
+
+        key = cv2.waitKey(1)
+        if key == ord('q'):
+            break
+        if key == ord('p'):
+            cv2.waitKey(-1)
 
         video_frame = video_source.get_frame()
 
