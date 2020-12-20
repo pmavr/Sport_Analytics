@@ -47,7 +47,7 @@ def get_frame_edges(video_frame):
     return frame
 
 
-def get_hough_lines(video_frame):
+def get_hough_lines(video_frame):x
     frame = get_frame_edges(video_frame)
 
     hough_lines = cv2.HoughLinesP(
@@ -197,6 +197,8 @@ def detect_court_lines(video_frame):
         return None
 
     lines = get_lines(hough_lines)
+
+    draw_hough_lines_on_frame(lines, video_frame)
 
     lines_a, lines_b = divide_lines_by_slope(lines)
 
