@@ -1,13 +1,10 @@
-import numpy as np
-from tensorflow.keras.models import load_model
-from helper import show_image
-
 from model import define_discriminator, define_generator, define_gan
 from helper import load_real_samples, train, plot_images, summarize_performance
+from utils import get_project_root
 
 if __name__ == '__main__':
-    initial_path = 'dataset/'
-    model_path = 'pix2pix/'
+    initial_path = f'{get_project_root()}/dataset/'
+    model_path = f'{initial_path}pix2pix/'
     dataset = load_real_samples('test_maps_256.npz')
     print('Loaded', dataset[0].shape, dataset[1].shape)
     image_shape = dataset[0].shape[1:]
