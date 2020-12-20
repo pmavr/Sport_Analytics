@@ -1,11 +1,13 @@
-import os, glob, shutil
-import numpy as np
-from numpy import asarray
+
 import cv2
+import numpy as np
 import scipy.io
-from numpy import savez_compressed
 import matplotlib.pyplot as plt
+from numpy import savez_compressed
+import os, glob, shutil
 import tarfile
+
+from utils import get_project_root
 
 
 def read_homography_matrix(data):
@@ -51,7 +53,7 @@ def load_images(initial_path, relative_path):
 
         src_list.append(court_img)
         tar_list.append(edge_map)
-    return [asarray(src_list), asarray(tar_list)]
+    return [np.asarray(src_list), np.asarray(tar_list)]
 
 
 def load_real_samples(filename):
@@ -190,8 +192,8 @@ def export_dataset_to_npz(initial_path, relative_path, filename):
     src_images = [cv2.resize(img, (256, 256)) for img in src_images]
     tar_images = [cv2.resize(img, (256, 256)) for img in tar_images]
 
-    src_images = asarray(src_images)
-    tar_images = asarray(tar_images)
+    src_images = np.asarray(src_images)
+    tar_images = np.asarray(tar_images)
 
     savez_compressed(filename, src_images, tar_images)
     print('Saved dataset: ', filename)
@@ -219,12 +221,12 @@ def divide_dataset_to_folders(initial_path, relative_path):
 
 if __name__ == '__main__':
 
-    initial_path = 'dataset/'
+    initial_path = f'{get_project_root()}/datasets/world_cup_2014/'
     dataset_tar_file = 'soccer_data.tar.gz'
 
-    my_tar = tarfile.open(f'{initial_path}{dataset_tar_file}')
-    my_tar.extractall(path=f'{initial_path}')
-    my_tar.close()
+    tar_file = tarfile.open(f'{initial_path}{dataset_tar_file}')
+    tar_file.extractall(path=f'{initial_path}')
+    tar_file.close()
 
     relative_train_path = 'raw/train_val/'
     relative_test_path = 'raw/test/'
@@ -235,5 +237,5 @@ if __name__ == '__main__':
     augment_soccer_dataset(initial_path, relative_train_path)
     augment_soccer_dataset(initial_path, relative_test_path)
 
-    export_dataset_to_npz(initial_path, relative_train_path, filename='train_maps_256.npz')
-    export_dataset_to_npz(initial_path, relative_test_path, filename='test_maps_256.npz')
+    export_dataset_to_npz(initial_path, relative_train_path, filename=f'{initial_path}train_maps_256.npz')
+    export_dataset_to_npz(initial_path, relative_test_path, filename=f'{initial_path}test_maps_256.npz')
