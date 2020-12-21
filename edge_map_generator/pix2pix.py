@@ -1,15 +1,20 @@
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.initializers import RandomNormal
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, load_model
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Conv2D
 from tensorflow.keras.layers import Conv2DTranspose
-from tensorflow.keras.layers import LeakyReLU
 from tensorflow.keras.layers import Activation
 from tensorflow.keras.layers import Concatenate
 from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.layers import LeakyReLU
+
+import utils
+
+
+def load_trained_model():
+    return load_model(f'{utils.get_edge_map_generator_model_path()}g_model.h5')
 
 
 def define_discriminator(image_shape=(256, 256, 3)):

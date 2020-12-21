@@ -2,6 +2,12 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+import utils
+
+
+def resize_image(image, shape=(256,256)):
+    return cv2.resize(image, shape)
+
 
 def load_real_samples(filename):
     data = np.load(filename)
@@ -55,22 +61,22 @@ def summarize_performance(step, g_model, dataset, n_samples=3):
     print('>Saved: %s and %s' % (filename1, filename2))
 
 
-def train(d_model, g_model, gan_model, dataset, n_epochs=100, n_batch=1):
-    n_patch = d_model.output_shape[1]
+def train(discriminator, generator, gan, dataset, n_epochs=100, n_batch=1):
+    n_patch = discriminator.output_shape[1]
     train_a, train_b = dataset
     bat_per_epo = int(len(train_a) / n_batch)
     n_steps = bat_per_epo * n_epochs
 
     for i in range(n_steps):
         [X_realA, X_realB], y_real = generate_real_samples(dataset, n_batch, n_patch)
-        x_fake_b, y_fake = generate_fake_samples(g_model, X_realA, n_patch)
-        d_loss1 = d_model.train_on_batch([X_realA, X_realB], y_real)
-        d_loss2 = d_model.train_on_batch([X_realA, x_fake_b], y_fake)
-        g_loss, _, _ = gan_model.train_on_batch(X_realA, [y_real, X_realB])
+        x_fake_b, y_fake = generate_fake_samples(generator, X_realA, n_patch)
+        d_loss1 = discriminator.train_on_batch([X_realA, X_realB], y_real)
+        d_loss2 = discriminator.train_on_batch([X_realA, x_fake_b], y_fake)
+        g_loss, _, _ = gan.train_on_batch(X_realA, [y_real, X_realB])
         print('>%d, d1[%.3f] d2[%.3f] g[%.3f]' % (i + 1, d_loss1, d_loss2, g_loss))
 
         if (i + 1) % (bat_per_epo * 10) == 0:
-            summarize_performance(i, g_model, dataset)
+            summarize_performance(i, generator, dataset)
 
 
 def plot_images(src_img, gen_img, tar_img):
