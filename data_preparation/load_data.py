@@ -40,7 +40,7 @@ def load_world_cup_dataset():
     datasets = {}
 
     for path in paths:
-        binary_court = cv2.imread(f"{utils.get_world_cup_2014_dataset_path()}binary_court.jpg", cv2.IMREAD_GRAYSCALE)
+        binary_court = cv2.imread(f"{utils.get_world_cup_2014_dataset_path()}binary_court.jpg")
         court_image_filelist = glob.glob(f"{path.get('path')}*.jpg")
         court_images, homography_matrices, grass_masks, edge_maps = [], [], [], []
 
