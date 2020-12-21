@@ -1,0 +1,4 @@
+# World Cup 2014 dataset
+### Created by Homayounfar et al.- 2017 ### 
+It contains 20 recorded games from the World Cup 2014 held in Brazil. Out of these games, 395 images were annotated with the ground truth fields and also the grass segmentations. We randomly split The games were randomly splitted into two sets with 10 games of 209 images for training and validation, and 186 images from 10 other games for the test set. The images consist of different views of the field with different grass textures and lighting patterns. These games were held in 9 unique stadiums during day and night. There are some games with rain and heavy shadows.
+Dataset publicly accessible at author's [website](https://nhoma.github.io/) 

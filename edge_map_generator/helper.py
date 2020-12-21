@@ -3,21 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def show_image(img, msg=''):
-    """
-    Displays an image. Esc char to close window
-    :param img: Image to be displayed
-    :param msg: Optional message-title for the window
-    :return:
-    """
-    cv2.imshow(msg, img)
-    while 1:
-        k = cv2.waitKey(0)
-        if k == 27:
-            break
-    cv2.destroyWindow(msg)
-
-
 def load_real_samples(filename):
     data = np.load(filename)
     x1, x2 = data['arr_0'], data['arr_1']
