@@ -5,16 +5,18 @@ import matplotlib.pyplot as plt
 import utils
 
 
-def resize_image(image, shape=(256,256)):
-    return cv2.resize(image, shape)
+def prepare_data(data, img_dims=(256, 256)):
+    x, y = data['court_images'], data['edge_maps']
 
+    # Normalize images
+    x = (x - 127.5) / 127.5
+    y = (y - 127.5) / 127.5
 
-def load_real_samples(filename):
-    data = np.load(filename)
-    x1, x2 = data['arr_0'], data['arr_1']
-    x1 = (x1 - 127.5) / 127.5
-    x2 = (x2 - 127.5) / 127.5
-    return [x1, x2]
+    # Resize images according to model input
+    court_images = np.asarray([cv2.resize(img, img_dims) for img in x])
+    edge_maps = np.asarray([cv2.resize(img, img_dims) for img in y])
+
+    return [court_images, edge_maps]
 
 
 def generate_real_samples(dataset, n_samples, patch_shape):
