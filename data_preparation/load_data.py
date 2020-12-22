@@ -1,10 +1,10 @@
 import cv2
 import numpy as np
 from scipy.io import loadmat, savemat
-import matplotlib.pyplot as plt
-from numpy import savez_compressed, savetxt
-import os, glob, shutil
+from numpy import savez_compressed
+import os, glob
 import tarfile
+
 
 import utils
 
