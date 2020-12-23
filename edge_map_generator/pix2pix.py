@@ -14,20 +14,20 @@ from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.layers import LeakyReLU
 
+from data_preparation.prepare_data import prepare_input
 import utils
 
 
 class Pix2Pix:
 
-    def __init__(self, input_shape):
+    def __init__(self, input_shape=(256, 256, 3)):
         self.input_shape = input_shape
         self.discriminator = define_discriminator(self.input_shape)
         self.generator = define_generator(self.input_shape)
         self.gan = define_gan(self.generator, self.discriminator, self.input_shape)
 
-    def train(self, data, n_epochs=100, n_batch=1):
-        dataset = prepare_input(data['court_images']), prepare_input(data['edge_maps'])
-
+    def train(self, x, y, n_epochs=100, n_batch=1):
+        dataset = x, y
         n_patch = self.discriminator.output_shape[1]
         train_a, train_b = dataset
         bat_per_epo = int(len(train_a) / n_batch)
@@ -45,7 +45,6 @@ class Pix2Pix:
                 summarize_performance(i, self.generator, dataset)
 
     def predict(self, images):
-        images = prepare_input(images)
         return self.generator.predict(images)
 
     def save_generator(self, file):
@@ -166,13 +165,6 @@ def define_gan(g_model, d_model, image_shape):
     return model
 
 
-def prepare_input(images, img_dims=(256, 256)):
-    '''Normalize pixel values from [0,255] to [-1,1] then, resize images'''
-    images = normalize_images(images)
-    images = np.asarray([cv2.resize(img, img_dims) for img in images])
-    return images
-
-
 def summarize_performance(step, g_model, dataset, n_samples=3):
     [x_real_a, x_real_b], _ = generate_real_samples(dataset, n_samples, 1)
     x_fake_b, _ = generate_fake_samples(g_model, x_real_a, 1)
@@ -217,5 +209,3 @@ def generate_fake_samples(g_model, samples, patch_shape):
     return x, y
 
 
-def normalize_images(x):
-    return (x - 127.5) / 127.5
