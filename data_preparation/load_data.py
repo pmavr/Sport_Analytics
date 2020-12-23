@@ -126,12 +126,6 @@ def extract_from_tar(tar_file, extraction_path):
 #                    flipped_court_homography, fmt='%.7e', delimiter='\t')
 
 
-def extract_from_tar(tar_file, extraction_path):
-    tar_file = tarfile.open(tar_file)
-    tar_file.extractall(path=extraction_path)
-    tar_file.close()
-
-
 if __name__ == '__main__':
     world_cup_2014_dataset_path = utils.get_world_cup_2014_dataset_path()
 
