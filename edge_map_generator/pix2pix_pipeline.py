@@ -1,6 +1,5 @@
 import numpy as np
 
-from data_preparation.load_data import load_world_cup_dataset
 from edge_map_generator.pix2pix import Pix2Pix
 from data_preparation.prepare_data import prepare_input
 from edge_map_generator.helper import plot_images
