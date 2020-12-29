@@ -17,6 +17,9 @@ def get_edge_map_generator_model_path():
     return f'{get_project_root()}/edge_map_generator/generated_models/'
 
 
+def get_homography_estimator_model_path():
+    return f'{get_project_root()}/homography_estimator/generated_models/'
+
 def show_image(img, msg=''):
     """
     Displays an image. Esc char to close window. For debugging purposes
