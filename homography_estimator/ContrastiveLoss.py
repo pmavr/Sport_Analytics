@@ -6,10 +6,12 @@ from tensorflow.python.keras.utils import losses_utils
 class ContrastiveLoss(tf.keras.losses.Loss):
 
     def __init__(self,
+                 embedding_shape=16,
                  margin=1.0,
                  reduction=losses_utils.ReductionV2.AUTO,
                  name='contrastive_loss'):
         super(ContrastiveLoss, self).__init__(reduction=reduction, name=name)
+        self.embedding_shape = embedding_shape
         self.margin = margin
 
     def call(self, y_true, y_pred):
@@ -21,8 +23,8 @@ class ContrastiveLoss(tf.keras.losses.Loss):
         :return:
         """
         x1, x2 = y_pred
-        assert len(x1.shape) == 2
-        assert len(x2.shape) == 2
+        assert len(x1.shape) == self.embedding_shape
+        assert len(x2.shape) == self.embedding_shape
         assert len(y_true.shape) == 1
         assert y_true.shape[0] == x1.shape[0]
 
@@ -31,7 +33,7 @@ class ContrastiveLoss(tf.keras.losses.Loss):
 
 
 if __name__ == '__main__':
-    contrastive_loss = ContrastiveLoss(margin=1.0)
+    contrastive_loss = ContrastiveLoss(embedding_shape=2, margin=1.0)
     branch_1_output = tf.constant([[-50.2600, 50.0971], [1.5916, 1.2401]], dtype=tf.float32)
     branch_2_output = tf.constant([[-0.2677, 0.0941], [1.5784, 1.2403]], dtype=tf.float32)
     y_pred = [branch_1_output, branch_2_output]
