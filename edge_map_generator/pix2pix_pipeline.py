@@ -1,7 +1,7 @@
 import numpy as np
 
-from edge_map_generator.pix2pix import Pix2Pix
-from data_preparation.prepare_data import prepare_input
+from edge_map_generator.Pix2Pix import Pix2Pix
+from edge_map_generator.prepare_data import prepare_input
 from edge_map_generator.helper import plot_images
 import utils
 
