@@ -1,10 +1,10 @@
+import sys
 import cv2
 import numpy as np
-from scipy.io import loadmat, savemat
+from scipy.io import loadmat
 from numpy import savez_compressed
-import os, glob
+import glob
 import tarfile
-
 
 import utils
 
@@ -152,3 +152,4 @@ if __name__ == '__main__':
 
     # augment_soccer_dataset(initial_path, relative_train_path)
     # augment_soccer_dataset(initial_path, relative_test_path)
+    sys.exit()

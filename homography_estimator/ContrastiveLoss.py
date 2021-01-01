@@ -1,9 +1,10 @@
 import sys
 import tensorflow as tf
+from tensorflow.keras.losses import Loss
 from tensorflow.python.keras.utils import losses_utils
 
 
-class ContrastiveLoss(tf.keras.losses.Loss):
+class ContrastiveLoss(Loss):
 
     def __init__(self,
                  embedding_shape=16,
