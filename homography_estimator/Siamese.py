@@ -1,15 +1,8 @@
 
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.initializers import RandomNormal
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Conv2D, Dense, Flatten
-from tensorflow.keras import backend
-from tensorflow.keras.layers import Conv2DTranspose
-from tensorflow.keras.layers import Activation
 from tensorflow.keras.layers import Concatenate
-from tensorflow.keras.layers import Dropout, GlobalAveragePooling2D
-from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.layers import LeakyReLU, ReLU
 
 
@@ -19,50 +12,10 @@ class Siamese:
         self.input_shape = input_shape
         self.embedding_shape = embedding_shape
 
-        self.branch_model = self.__define_branch()
-        self.head_model = self.__define_head()
+        self.branch_model = self._define_branch()
+        self.head_model = self._define_head()
 
-        self.model = self.__define_siamese()
-
-    def compile(self, loss, optimizer, metrics):
-        self.model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
-
-    def train(self, x, y, n_epochs=100, n_batch=1):
-        pairTrain, pairTest = x
-        labelTrain, labelTest = y
-        # train the model
-        print("[INFO] training model...")
-        history = self.model.fit(
-            [pairTrain[:, 0], pairTrain[:, 1]], labelTrain[:],
-            validation_data=([pairTest[:, 0], pairTest[:, 1]], labelTest[:]),
-            batch_size=n_batch,
-            epochs=n_epochs)
-
-        return history
-
-    def predict(self):
-        pass
-
-    def save_estimator(self, file):
-        self.model.save(file)
-
-    def load_trained_generator(self, file):
-        self.model = load_model(file)
-
-    def fit(self, train_data, validation_data, batch_size, epochs):
-        x_train, y_train = train_data
-        x_test, y_test = validation_data
-
-        train_generator = self.__pair_generator(x_train, y_train, batch_size)
-        train_steps = max(len(x_train) / batch_size, 1)
-        test_generator = self.__pair_generator(x_test, y_test, batch_size)
-        test_steps = max(len(x_test) / batch_size, 1)
-        self.model.fit_generator(train_generator,
-                                 steps_per_epoch=train_steps,
-                                 epochs=epochs,
-                                 validation_data=test_generator,
-                                 validation_steps=test_steps
-                                 )
+        self.model = self._define_siamese()
 
     def _define_branch(self):
         branch_input = Input(shape=self.input_shape)
