@@ -1,8 +1,6 @@
-import sys
 import random
 import tensorflow as tf
 from tensorflow.keras.utils import Sequence
-from PIL import Image
 
 import utils
 
@@ -119,7 +117,7 @@ class SiameseDataset(Sequence):
 
 
 if __name__ == '__main__':
-
+    import sys
     import scipy.io as sio
 
     world_cup_2014_dataset_path = utils.get_world_cup_2014_dataset_path()

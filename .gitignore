@@ -5,7 +5,7 @@ __pycache__/
 # datasets
 datasets/world_cup_2014/raw/
 datasets/Soccer Dataset/
-
+generated_models/
 
 *.weights
 *.h5

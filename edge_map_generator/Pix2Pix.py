@@ -13,9 +13,11 @@ from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.layers import LeakyReLU
 
+import utils
 
 class Pix2Pix:
     # TODO: run model to verify functionality
+    # TODO: transfer data generating methods to separate class
 
     def __init__(self, input_shape=(256, 256, 3)):
         self.input_shape = input_shape
@@ -203,6 +205,31 @@ def summarize_performance(step, g_model, dataset, n_samples=3):
     print('>Saved: %s and %s' % (filename1, filename2))
 
 
+if __name__ == '__main__':
+    import sys
+    from Pix2PixDataset import prepare_input
+    from helper import plot_images
 
+    model_path = utils.get_edge_map_generator_model_path()
+    print('Loading World Cup 2014 dataset')
+    train_data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset.npz')
 
+    court_images = prepare_input(train_data['court_images'])
+    edge_maps = prepare_input(train_data['edge_maps'])
 
+    model = Pix2Pix()
+
+    # print('Training pix2pix model...')
+    # model.train(x=court_images, y=edge_maps, n_epochs=1)
+
+    # model.save_generator(f'{model_path}g_model_v2.h5')
+
+    model.load_trained_generator(f'{utils.get_edge_map_generator_model_path()}g_model.h5')
+
+    src_image, tar_image = court_images[:1], edge_maps[:1]
+
+    gen_image = model.predict(src_image)
+
+    plot_images(src_img=src_image, tar_img=tar_image, gen_img=gen_image)
+
+    sys.exit()
