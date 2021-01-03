@@ -1,8 +1,10 @@
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Conv2D, Dense, Flatten
 from tensorflow.keras.layers import LeakyReLU, ReLU
+from tensorflow.keras.initializers import RandomUniform
 
 
 class Siamese:
@@ -21,12 +23,16 @@ class Siamese:
 
         d = Conv2D(4, kernel_size=7, strides=2, padding='same')(branch_input)
         d = LeakyReLU(alpha=0.1)(d)
+
         d = Conv2D(8, kernel_size=5, strides=2, padding='same')(d)
         d = ReLU()(d)
+
         d = Conv2D(16, kernel_size=3, strides=2, padding='same')(d)
         d = ReLU()(d)
+
         d = Conv2D(32, kernel_size=3, strides=2, padding='same')(d)
         d = ReLU()(d)
+
         d = Conv2D(16, kernel_size=3, strides=2, padding='same')(d)
         d = ReLU()(d)
         d = Flatten()(d)
@@ -74,10 +80,6 @@ if __name__ == '__main__':
     x1 = tf.constant(np.random.rand(N, 180, 320, 1), dtype=tf.float32)
     x2 = tf.constant(np.random.rand(N, 180, 320, 1), dtype=tf.float32)
 
-    branch_input = x1.shape
-    layer = Conv2D(4, kernel_size=7, strides=2, padding='same', input_shape=branch_input)
-    d = layer(x1)
-
     y1 = tf.constant(np.random.rand(N, 1), dtype=tf.float32)
     y_zeros = tf.zeros((N, 1))
     y_ones = tf.ones((N, 1))
@@ -89,4 +91,5 @@ if __name__ == '__main__':
     f1, f2 = tf.split(y_pred, num_or_size_splits=2, axis=1)
     print(f1)
     print(f2)
+    print(loss)
     sys.exit()
