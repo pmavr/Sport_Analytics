@@ -4,7 +4,6 @@ from tensorflow.keras.models import Model
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Conv2D, Dense, Flatten
 from tensorflow.keras.layers import LeakyReLU, ReLU
-from tensorflow.keras.initializers import RandomUniform
 
 
 class Siamese:
@@ -23,16 +22,12 @@ class Siamese:
 
         d = Conv2D(4, kernel_size=7, strides=2, padding='same')(branch_input)
         d = LeakyReLU(alpha=0.1)(d)
-
         d = Conv2D(8, kernel_size=5, strides=2, padding='same')(d)
         d = ReLU()(d)
-
         d = Conv2D(16, kernel_size=3, strides=2, padding='same')(d)
         d = ReLU()(d)
-
         d = Conv2D(32, kernel_size=3, strides=2, padding='same')(d)
         d = ReLU()(d)
-
         d = Conv2D(16, kernel_size=3, strides=2, padding='same')(d)
         d = ReLU()(d)
         d = Flatten()(d)
