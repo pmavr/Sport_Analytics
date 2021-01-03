@@ -11,13 +11,13 @@ class SiameseDataset(Sequence):
                  pivot_data,
                  positive_data,
                  batch_size,
-                 num_batch,
+                 num_of_batches,
                  data_transform,
                  is_train=True):
         self.pivot_data = pivot_data
         self.positive_data = positive_data
         self.batch_size = batch_size
-        self.num_batch = num_batch
+        self.num_batch = num_of_batches
         self.data_transform = data_transform
         self.num_camera = pivot_data.shape[0]
 
@@ -75,10 +75,10 @@ class SiameseDataset(Sequence):
             x2.append(self.data_transform(pos))
             x2.append(self.data_transform(neg))
 
-            label.append(1)
-            label.append(0)
+            label.append(1.)
+            label.append(0.)
 
-        return tf.stack(x1), tf.stack(x2), tf.stack(label)
+        return (tf.stack(x1), tf.stack(x2)), tf.stack(label)
 
     def _get_test_item(self, index):
         """
@@ -115,6 +115,25 @@ class SiameseDataset(Sequence):
         else:
             return self._get_test_item(index)
 
+
+def get_siamese_dataset():
+    world_cup_2014_dataset_path = utils.get_world_cup_2014_dataset_path()
+
+    print('[INFO] Loading training data..')
+    data = sio.loadmat(f'{world_cup_2014_dataset_path}train_data_10k.mat')
+
+    pivot_images = data['pivot_images']
+    positive_images = data['positive_images']
+
+    normalize = utils.Normalize(mean=[0.0188],
+                                std=[0.128])
+
+    print('[INFO] Creating data generators..')
+    return SiameseDataset(pivot_images, positive_images,
+                             batch_size=32,
+                             num_of_batches=64,
+                             data_transform=normalize,
+                             is_train=True)
 
 if __name__ == '__main__':
     import sys
