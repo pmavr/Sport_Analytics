@@ -1,6 +1,7 @@
 import random
 import tensorflow as tf
 from tensorflow.keras.utils import Sequence
+import scipy.io as sio
 
 import utils
 
@@ -116,28 +117,8 @@ class SiameseDataset(Sequence):
             return self._get_test_item(index)
 
 
-def get_siamese_dataset():
-    world_cup_2014_dataset_path = utils.get_world_cup_2014_dataset_path()
-
-    print('[INFO] Loading training data..')
-    data = sio.loadmat(f'{world_cup_2014_dataset_path}train_data_10k.mat')
-
-    pivot_images = data['pivot_images']
-    positive_images = data['positive_images']
-
-    normalize = utils.Normalize(mean=[0.0188],
-                                std=[0.128])
-
-    print('[INFO] Creating data generators..')
-    return SiameseDataset(pivot_images, positive_images,
-                             batch_size=32,
-                             num_of_batches=64,
-                             data_transform=normalize,
-                             is_train=True)
-
 if __name__ == '__main__':
     import sys
-    import scipy.io as sio
 
     world_cup_2014_dataset_path = utils.get_world_cup_2014_dataset_path()
     data = sio.loadmat(f'{world_cup_2014_dataset_path}train_data_10k.mat')

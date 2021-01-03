@@ -77,4 +77,5 @@ class Normalize:
         if std.ndim == 1:
             std = tf.reshape(std, (-1, 1, 1))
         tensor = tf.divide(tf.subtract(tensor, mean), std)
+        tensor = tf.reshape(tensor, (tensor.shape[1], tensor.shape[2], tensor.shape[0]))
         return tensor

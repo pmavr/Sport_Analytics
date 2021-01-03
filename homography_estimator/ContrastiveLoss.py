@@ -23,7 +23,7 @@ class ContrastiveLoss(Loss):
         """
         # x1, x2 = tf.unstack(y_pred, axis=0)
         x1, x2 = tf.split(y_pred, num_or_size_splits=2, axis=1)
-        y_true = tf.squeeze(y_true)
+        y_true = tf.squeeze(y_true, axis=-1)
         assert len(x1.shape) == 2
         assert len(x2.shape) == 2
         assert len(y_true.shape) == 1
