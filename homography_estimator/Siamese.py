@@ -1,19 +1,18 @@
-
-from tensorflow.keras.models import Model, load_model
+import tensorflow as tf
+from tensorflow.keras.models import Model
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Conv2D, Dense, Flatten
-from tensorflow.keras.layers import Concatenate
 from tensorflow.keras.layers import LeakyReLU, ReLU
 
 
 class Siamese:
 
-    def __init__(self, input_shape, embedding_shape=16):
+    def __init__(self, input_shape, embedding_size=16):
         self.input_shape = input_shape
-        self.embedding_shape = embedding_shape
+        self.embedding_size = embedding_size
 
         self.branch_model = self._define_branch()
-        self.head_model = self._define_head()
+        self.head_model = self._define_head(self.branch_model.output_shape)
 
         self.model = self._define_siamese()
 
@@ -31,58 +30,63 @@ class Siamese:
         d = Conv2D(16, kernel_size=3, strides=2, padding='same')(d)
         d = ReLU()(d)
         d = Flatten()(d)
-        branch_output = Dense(self.embedding_shape)(d)
+        branch_output = Dense(self.embedding_size)(d)
 
-        return Model(branch_input, branch_output)
+        model = Model(branch_input, branch_output)
 
-    def _define_head(self):
-        branch_a_output = Input(shape=self.embedding_shape)
-        branch_b_output = Input(shape=self.embedding_shape)
+        return model
 
-        head_output = Concatenate()([branch_a_output, branch_b_output])
+    def _define_head(self, embedding_shape):
+        branch_a_output = Input(shape=embedding_shape)
+        branch_b_output = Input(shape=embedding_shape)
 
-        return Model([branch_a_output, branch_b_output], head_output)
+        # head_output = tf.stack([branch_a_output, branch_b_output])
+        head_output = tf.keras.layers.Concatenate()([branch_a_output, branch_b_output])
+
+        model = Model([branch_a_output, branch_b_output], head_output)
+
+        return model
 
     def _define_siamese(self):
         input_a = Input(shape=self.input_shape)
         input_b = Input(shape=self.input_shape)
 
-        branch_a_output = self.branch_model(input_a)
-        branch_b_output = self.branch_model(input_b)
+        input_a_encoded = self.branch_model(input_a)
+        input_b_encoded = self.branch_model(input_b)
 
-        head_output = self.head_model([branch_a_output, branch_b_output])
+        head_output = self.head_model([input_a_encoded, input_b_encoded])
+
         model = Model([input_a, input_b], head_output)
 
         return model
 
-    def _pair_generator(self, x_train, y_train, batch_size):
-        return None
-
 
 if __name__ == '__main__':
     import sys
-    from tensorflow.keras.optimizers import Adam
+    from ContrastiveLoss import ContrastiveLoss
 
-    model_path = utils.get_homography_estimator_model_path()
+    siamese = Siamese(input_shape=(180, 320, 1))
+    criterion = ContrastiveLoss(margin=1.0)
 
-    img_shape = (180, 320, 1)
-    learning_rate = .01
-    batch_size = 64
-    num_epoch = 10
+    import numpy as np
+    np.random.seed(0)
+    N = 3
+    x1 = tf.constant(np.random.rand(N, 180, 320, 1), dtype=tf.float32)
+    x2 = tf.constant(np.random.rand(N, 180, 320, 1), dtype=tf.float32)
 
-    optimizer = Adam(lr=learning_rate, weight_decay=0.000001)
+    branch_input = x1.shape
+    layer = Conv2D(4, kernel_size=7, strides=2, padding='same', input_shape=branch_input)
+    d = layer(x1)
 
-    siamese = Siamese(input_shape=img_shape)
+    y1 = tf.constant(np.random.rand(N, 1), dtype=tf.float32)
+    y_zeros = tf.zeros((N, 1))
+    y_ones = tf.ones((N, 1))
 
-    siamese.model.compile(loss='contrastive_loss', optimizer=optimizer, metrics=['accuracy'])
+    y_true = tf.where((y1 > 0), y_ones, y_zeros)
 
-
-
-    siamese.model.fit(train_generator,
-                   steps_per_epoch=train_steps,
-                   epochs=num_epoch,
-                   validation_data=test_generator,
-                   validation_steps=test_steps
-                   )
-
+    y_pred = siamese.model((x1, x2))
+    loss = criterion(y_true, y_pred)
+    f1, f2 = tf.split(y_pred, num_or_size_splits=2, axis=1)
+    print(f1)
+    print(f2)
     sys.exit()
