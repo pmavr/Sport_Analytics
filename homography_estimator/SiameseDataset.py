@@ -116,6 +116,9 @@ class SiameseDataset(Sequence):
         else:
             return self._get_test_item(index)
 
+    def on_epoch_end(self):
+        self._sample_once()
+
 
 if __name__ == '__main__':
     import sys
