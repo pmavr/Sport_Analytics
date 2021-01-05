@@ -1,11 +1,10 @@
 import sys
 import scipy.io as sio
-from tensorflow.keras.optimizers import Adam
 from tensorflow_addons.optimizers import AdamW
 
-from homography_estimator.SiameseDataset import SiameseDataset
-from homography_estimator.Siamese import Siamese
-from homography_estimator.ContrastiveLoss import ContrastiveLoss
+from homography_estimator.tensorflow.SiameseDataset import SiameseDataset
+from homography_estimator.tensorflow.Siamese import Siamese
+from homography_estimator.tensorflow.ContrastiveLoss import ContrastiveLoss
 import utils
 
 if __name__ == '__main__':
