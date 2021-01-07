@@ -1,6 +1,8 @@
 import cv2
 import tensorflow as tf
+import torch
 from pathlib import Path
+import pickle
 
 
 def get_project_root() -> Path:
@@ -20,6 +22,37 @@ def get_edge_map_generator_model_path():
 
 def get_homography_estimator_model_path():
     return f'{get_project_root()}/homography_estimator/generated_models/'
+
+
+def save_model(model, optimizer, filename):
+    model = model.to('cpu')
+    state = {
+        'state_dict': model.state_dict(),
+        'optimizer': optimizer.state_dict()}
+    torch.save(state, filename)
+
+
+def load_model(model, filename):
+    model.load_state_dict(torch.load(filename))
+    return model
+
+
+def read_pickle_file(filename):
+    data = []
+    with open(filename, 'rb') as file:
+        while True:
+            try:
+                data.append(pickle.load(file))
+            except EOFError:
+                break
+        file.close()
+        return data
+
+
+def save_to_pickle_file(data, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(data, f)
+        f.close()
 
 
 def show_image(img, msg=''):
