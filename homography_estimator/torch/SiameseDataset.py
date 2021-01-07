@@ -30,14 +30,14 @@ class SiameseDataset(Dataset):
         self.is_train = is_train
 
         if self.is_train:
-            self.sample_once()
+            self._sample_once()
         else:
             # in testing, loop over all pivot cameras
             self.num_batch = self.num_camera // batch_size
             if self.num_camera % batch_size != 0:
                 self.num_batch += 1
 
-    def sample_once(self):
+    def _sample_once(self):
         self.positive_index = []
         self.negative_index = []
         num = self.batch_size * self.num_of_batches
@@ -70,10 +70,6 @@ class SiameseDataset(Dataset):
             pos = self.positive_data[idx1].squeeze()
             neg = self.pivot_data[idx2].squeeze()
 
-            pivot = Image.fromarray(pivot)
-            pos = Image.fromarray(pos)
-            neg = Image.fromarray(neg)
-
             pivot = self.data_transform(pivot)
             pos = self.data_transform(pos)
             neg = self.data_transform(neg)
@@ -86,7 +82,7 @@ class SiameseDataset(Dataset):
             label.append(1.)
             label.append(0.)
 
-        return (torch.stack(x1), torch.stack(x2)), torch.tensor(label)
+        return torch.stack(x1), torch.stack(x2), torch.tensor(label)
 
     def _get_test_item(self, index):
         """
@@ -113,6 +109,9 @@ class SiameseDataset(Dataset):
             label_dummy.append(0)
 
         return torch.stack(x), torch.tensor(label_dummy)
+
+    def total_dataset_size(self):
+        return self.num_of_batches * self.batch_size
 
     def __getitem__(self, index):
         if self.is_train:

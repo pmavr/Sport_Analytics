@@ -10,7 +10,7 @@ class ContrastiveLoss(Module):
         super(ContrastiveLoss, self).__init__()
         self.margin = margin
 
-    def __call__(self, y_true, y_pred, **kwargs):
+    def __call__(self, x1, x2, y_true, **kwargs):
         """
         :param margin:
         :param x1: N * D
@@ -18,7 +18,6 @@ class ContrastiveLoss(Module):
         :param y_true: 0 for un-similar, 1 for similar
         :return:
         """
-        x1, x2 = y_pred
         assert len(x1.shape) == 2
         assert len(x2.shape) == 2
         assert len(y_true.shape) == 1
@@ -27,10 +26,8 @@ class ContrastiveLoss(Module):
         pdist = PairwiseDistance(p=2)
         dist = pdist(x1, x2)
         loss = y_true * torch.pow(dist, 2) \
-               + (1 - y_true) * torch.pow(torch.clamp(self.margin - dist, min=0.0), 2)
-        loss = torch.sum(loss)
-
-        return 0.5 * loss
+               + (1-y_true) * torch.pow(torch.clamp(self.margin - dist, min=0.0), 2)
+        return torch.sum(loss)
 
 
 if __name__ == '__main__':
@@ -49,7 +46,7 @@ if __name__ == '__main__':
     y_true = torch.where(y1 > 0, y_ones, y_zeros)
     y_true = torch.squeeze(y_true)
 
-    loss = contrastive_loss(y_true, y_pred)
+    loss = contrastive_loss(x1, x2, y_true)
     print(loss.shape)
     print(loss)
 
