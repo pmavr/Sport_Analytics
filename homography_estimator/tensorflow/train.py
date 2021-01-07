@@ -18,8 +18,8 @@ if __name__ == '__main__':
     normalize = utils.Normalize(mean=[0.0188], std=[0.128])
 
     train_generator = SiameseDataset(pivot_images, positive_images,
-                          batch_size=32,
-                          num_of_batches=64,
+                          batch_size=64,
+                          num_of_batches=128,
                           data_transform=normalize,
                           is_train=True)
 

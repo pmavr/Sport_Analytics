@@ -1,6 +1,5 @@
 import random
 import scipy.io as sio
-from PIL import Image
 
 import torch
 from torch.utils.data.dataset import Dataset
@@ -30,14 +29,14 @@ class SiameseDataset(Dataset):
         self.is_train = is_train
 
         if self.is_train:
-            self._sample_once()
+            self.sample_once()
         else:
             # in testing, loop over all pivot cameras
             self.num_batch = self.num_camera // batch_size
             if self.num_camera % batch_size != 0:
                 self.num_batch += 1
 
-    def _sample_once(self):
+    def sample_once(self):
         self.positive_index = []
         self.negative_index = []
         num = self.batch_size * self.num_of_batches
