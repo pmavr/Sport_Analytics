@@ -5,11 +5,11 @@ from pathlib import Path
 import pickle
 
 
-def get_project_root() -> Path:
+def get_project_root():
     '''
     :return:  path without slash in the end.
     '''
-    return Path(__file__).parent
+    return f'{Path(__file__).parent}/'
 
 
 def get_world_cup_2014_dataset_path():
