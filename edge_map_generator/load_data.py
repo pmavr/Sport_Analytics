@@ -73,59 +73,6 @@ def extract_from_tar(tar_file, extraction_path):
     tar_file.close()
 
 
-# def get_horizontal_flip_homography(court_img, homography_orig):
-#     '''
-#     Get the homography for an image after it 's flipped horizontally
-#     :param court_img: the original image for which you want to calculate the homography of its flipped counterpart
-#     :param homography_orig: homography of the original image
-#     :return:
-#     '''
-#     # taken from Homayounfar et al. - 2017
-#
-#     # court dimensions in yards
-#     field_width = 114.83
-#     field_height = 74.37
-#     img_width = court_img.shape[1]
-#     img_height = court_img.shape[0]
-#
-#     homography_rev = np.array([[-1, 0, img_width], [0, 1, 0], [0, 0, 1]])
-#     homography_rev_inv = homography_rev
-#     homography_rev_model = np.array([[-1, 0, field_width], [0, 1, 0], [0, 0, 1]])
-#
-#     homography = homography_orig.dot(homography_rev_inv)
-#     homography = homography_rev_model.dot(homography)
-#     return homography
-#
-#
-# def augment_soccer_dataset(initial_path, relative_path):
-#     court_image_path = f'{initial_path}{relative_path}court_images/'
-#     homographies_path = f'{initial_path}{relative_path}homography_matrices/'
-#     grass_mat_path = f'{initial_path}{relative_path}grass_mats/'
-#
-#     dataset_length = os.listdir(court_image_path).__len__()
-#
-#     for i in range(1, dataset_length + 1):
-#         court_img = cv2.imread('{}{}.jpg'.format(court_image_path, i))
-#
-#         mat = loadmat('{}{}_grass_gt.mat'.format(grass_mat_path, i))
-#         grass_mask = mat.get('grass')
-#
-#         with open('{}{}.homographyMatrix'.format(homographies_path, i)) as homography_file:
-#             data = homography_file.readlines()
-#         matrix = read_homography_matrix(data)
-#
-#         flipped_court_img = cv2.flip(court_img, 1)
-#         flipped_grass_mask = cv2.flip(grass_mask, 1)
-#         flipped_mat = {'grass': flipped_grass_mask}
-#         flipped_court_homography = get_horizontal_flip_homography(court_img, matrix)
-#
-#         flipped_image_code = i + dataset_length
-#         cv2.imwrite(f'{court_image_path}{flipped_image_code}.jpg', flipped_court_img)
-#         savemat(f'{grass_mat_path}{flipped_image_code}_grass_gt.mat', flipped_mat, do_compression=True)
-#         np.savetxt(f'{homographies_path}{flipped_image_code}.homographyMatrix',
-#                    flipped_court_homography, fmt='%.7e', delimiter='\t')
-
-
 if __name__ == '__main__':
     world_cup_2014_dataset_path = utils.get_world_cup_2014_dataset_path()
 
