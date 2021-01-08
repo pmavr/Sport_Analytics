@@ -121,25 +121,6 @@ def fit_model(
     return model, opt_func, hist
 
 
-# def test_model(model, test_data, dev):
-#     val_loader = DataLoader(test_data, batch_size = len(test_data))
-#     model.eval()
-#     with torch.no_grad():
-#         val_images, val_labels = next(iter(val_loader))
-#         val_images = val_images.reshape(-1, 28*28).to(dev)
-#         val_labels = val_labels.to(dev)
-#
-#         logps = model(val_images)
-#         ps = torch.exp(logps)
-#         pred_prob, pred_label  = ps.topk(1, dim=1)
-#         true_label = val_labels.view(*pred_label.shape)
-#         equals = true_label == pred_label
-#
-#         accuracy = torch.mean(equals.type(torch.FloatTensor)).item()
-#
-#     print('Test on {} samples - Accuracy: {:.4f}'.format(len(test_data), accuracy))
-
-
 def plot_results(history, info):
 
     epochs_range = [i for i in range(history['num_of_epochs'])]

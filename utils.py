@@ -33,11 +33,12 @@ def save_model(model, optimizer, filename):
 
 
 def load_model(model, filename):
-    model.load_state_dict(torch.load(filename))
+    parameters = torch.load(filename)
+    model.load_state_dict(parameters['state_dict'])
     return model
 
 
-def read_pickle_file(filename):
+def load_pickle_file(filename):
     data = []
     with open(filename, 'rb') as file:
         while True:

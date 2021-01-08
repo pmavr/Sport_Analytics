@@ -41,8 +41,19 @@ class Siamese(Module):
         x2 = self._forward_one_branch(x2)
         return x1, x2
 
-    def get_config(self):
-        pass
+    def feature_numpy(self, x):
+        feat = self._forward_one_branch(x)
+        feat = feat.data
+        feat = feat.cpu()
+        feat = feat.numpy()
+        if len(feat.shape) == 4:
+            # N x C x 1 x 1
+            feat = np.squeeze(feat, axis=(2, 3))
+        else:
+            # N x C
+            assert len(feat.shape) == 2
+        return feat
+
 
 if __name__ == '__main__':
     import sys
