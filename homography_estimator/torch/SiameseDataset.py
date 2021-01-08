@@ -32,9 +32,9 @@ class SiameseDataset(Dataset):
             self.sample_once()
         else:
             # in testing, loop over all pivot cameras
-            self.num_batch = self.num_camera // batch_size
-            if self.num_camera % batch_size != 0:
-                self.num_batch += 1
+            self.num_of_batches = self.num_camera // batch_size
+            # if self.num_camera % batch_size != 0:
+            #     self.num_of_batches += 1
 
     def sample_once(self):
         self.positive_index = []
@@ -54,16 +54,15 @@ class SiameseDataset(Dataset):
         assert index < self.num_of_batches
 
         n, c, h, w = self.pivot_data.shape
-        batch_size = self.batch_size
 
-        start_index = batch_size * index
-        end_index = start_index + batch_size
+        start_index = self.batch_size * index
+        end_index = start_index + self.batch_size
         positive_index = self.positive_index[start_index:end_index]
         negative_index = self.negative_index[start_index:end_index]
 
         x1, x2, label = [], [], []
 
-        for i in range(batch_size):
+        for i in range(self.batch_size):
             idx1, idx2 = positive_index[i], negative_index[i]
             pivot = self.pivot_data[idx1].squeeze()
             pos = self.positive_data[idx1].squeeze()
@@ -92,22 +91,19 @@ class SiameseDataset(Dataset):
         assert index < self.num_of_batches
 
         n, c, h, w = self.pivot_data.shape
-        batch_size = self.batch_size
 
-        start_index = batch_size * index
-        end_index = min(start_index + batch_size, self.num_camera)
-        bsize = end_index - start_index
+        start_index = self.batch_size * index
+        end_index = start_index + self.batch_size
+        pivot_data = self.pivot_data[start_index:end_index]
 
         x, label_dummy = [], []
 
-        for i in range(start_index, end_index):
-            pivot = self.pivot_data[i].squeeze()
-            pivot = torch.tensor(pivot, dtype=torch.float32)
+        for i in range(self.batch_size):
+            pivot = pivot_data[i].squeeze()
+            pivot = self.data_transform(pivot)
+            x.append(pivot)
 
-            x.append(self.data_transform(pivot))
-            label_dummy.append(0)
-
-        return torch.stack(x), torch.tensor(label_dummy)
+        return torch.stack(x)
 
     def total_dataset_size(self):
         return self.num_of_batches * self.batch_size
