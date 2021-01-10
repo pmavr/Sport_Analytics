@@ -10,9 +10,9 @@ from torch.optim import Adam
 from torchvision.transforms import ToTensor, Normalize, Compose
 import torch.backends.cudnn as cudnn
 
-from homography_estimator.torch.SiameseDataset import SiameseDataset
-from homography_estimator.torch.Siamese import Siamese
-from homography_estimator.torch.ContrastiveLoss import ContrastiveLoss
+from homography_estimator.siamese.SiameseDataset import SiameseDataset
+from homography_estimator.siamese.Siamese import Siamese
+from homography_estimator.siamese.ContrastiveLoss import ContrastiveLoss
 import utils
 sns.set()
 
