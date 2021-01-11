@@ -180,11 +180,13 @@ if __name__ == '__main__':
         loss_func=criterion,
         train_loader=train_dataset,
         val_loader=None,
-        num_of_epochs=100)
+        num_of_epochs=10)
 
     plot_results(history, info='')
 
-    utils.save_model(network, optimizer, f'{utils.get_homography_estimator_model_path()}siamese.pth')
-    utils.save_to_pickle_file(history, f'{utils.get_homography_estimator_model_path()}history.pkl')
+    utils.save_model(network, optimizer,
+                     f"{utils.get_homography_estimator_model_path()}siamese_{history['num_of_epochs']}.pth")
+    utils.save_to_pickle_file(history,
+                              f"{utils.get_homography_estimator_model_path()}history_{history['num_of_epochs']}.pkl")
 
     # sys.exit()
