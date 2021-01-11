@@ -2,6 +2,7 @@ import cv2
 import tensorflow as tf
 import torch
 from pathlib import Path
+import matplotlib.pyplot as plt
 import pickle
 
 
@@ -56,19 +57,10 @@ def save_to_pickle_file(data, filename):
         f.close()
 
 
-def show_image(img, msg=''):
-    """
-    Displays an image. Esc char to close window. For debugging purposes
-    :param img: Image to be displayed
-    :param msg: Optional message-title for the window
-    :return:
-    """
-    cv2.imshow(msg, img)
-    while 1:
-        k = cv2.waitKey(0)
-        if k == 27:
-            break
-    cv2.destroyWindow(msg)
+def plot_image(img, title=''):
+    plt.imshow(img)
+    plt.title(title)
+    plt.show()
 
 
 def video_player(video_file):
