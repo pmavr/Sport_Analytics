@@ -18,6 +18,7 @@ def infer_features_from_edge_map(
         model = model.to(device)
         cudnn.benchmark = True
 
+    model.eval()
     with torch.no_grad():
         x = transform(edge_map)
         x = torch.reshape(x, (1, x.shape[0], x.shape[1], x.shape[2]))
