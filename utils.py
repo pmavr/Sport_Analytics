@@ -25,18 +25,25 @@ def get_homography_estimator_model_path():
     return f'{get_project_root()}/homography_estimator/generated_models/'
 
 
-def save_model(model, optimizer, filename):
+def save_model(model, optimizer, history, filename):
+    """Save trained model along with its optimizer and training, plottable history."""
     model = model.to('cpu')
     state = {
         'state_dict': model.state_dict(),
-        'optimizer': optimizer.state_dict()}
+        'optimizer': optimizer.state_dict(),
+        'history': history}
     torch.save(state, filename)
 
 
-def load_model(model, filename):
+def load_model(filename, model, optimizer=None, history=None):
+    """Load trained model along with its optimizer and training, plottable history."""
     parameters = torch.load(filename)
     model.load_state_dict(parameters['state_dict'])
-    return model
+    if optimizer:
+        optimizer.load_state_dict(parameters['optimizer'])
+    if history:
+        history = parameters['history']
+    return model, optimizer, history
 
 
 def load_pickle_file(filename):

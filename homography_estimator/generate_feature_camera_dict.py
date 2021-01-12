@@ -37,7 +37,7 @@ if __name__ == '__main__':
         Normalize(mean=[0.0188], std=[0.128])])
 
     siamese = Siamese()
-    siamese = utils.load_model(siamese, f'{utils.get_homography_estimator_model_path()}siamese_100.pth')
+    siamese, _, _ = utils.load_model(siamese, f'{utils.get_homography_estimator_model_path()}siamese_100.pth')
 
     features = np.zeros((num_of_camera_params, siamese.embedding_size), dtype=np.float32)
     for i in range(num_of_camera_params):

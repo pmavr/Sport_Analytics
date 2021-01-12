@@ -29,7 +29,7 @@ if __name__ == '__main__':
         Normalize(mean=[0.0188], std=[0.128])])
 
     siamese = Siamese()
-    siamese = utils.load_model(siamese, f'{utils.get_homography_estimator_model_path()}siamese_100.pth')
+    siamese, _, _ = utils.load_model(siamese, f'{utils.get_homography_estimator_model_path()}siamese_100.pth')
 
     edge_map_features = infer_features_from_edge_map(siamese, edge_map, transform)
 
