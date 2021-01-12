@@ -29,14 +29,14 @@ class SiameseDataset(Dataset):
         self.is_train = is_train
 
         if self.is_train:
-            self.sample_once()
+            self.shuffle_data()
         else:
             # in testing, loop over all pivot cameras
             self.num_of_batches = self.num_camera // batch_size
             # if self.num_camera % batch_size != 0:
             #     self.num_of_batches += 1
 
-    def sample_once(self):
+    def shuffle_data(self):
         self.positive_index = []
         self.negative_index = []
         num = self.batch_size * self.num_of_batches
