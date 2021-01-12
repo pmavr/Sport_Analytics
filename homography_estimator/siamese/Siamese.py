@@ -11,11 +11,11 @@ class Siamese(Module):
     def __init__(self):
         super(Siamese, self).__init__()
 
-        input_shape = (1, 180, 320)
-        embedding_size = 16
+        self.input_shape = (1, 180, 320)
+        self.embedding_size = 16
 
         layers = [
-            Conv2d(input_shape[0], 4, kernel_size=7, stride=2, padding=3),
+            Conv2d(self.input_shape[0], 4, kernel_size=7, stride=2, padding=3),
             LeakyReLU(negative_slope=0.1, inplace=True),
             Conv2d(4, 8, kernel_size=5, stride=2, padding=2),
             ReLU(inplace=True),
@@ -26,7 +26,7 @@ class Siamese(Module):
             Conv2d(32, 16, kernel_size=3, stride=2, padding=1),
             ReLU(inplace=True),
             Flatten(start_dim=1, end_dim=-1),
-            Linear(6 * 10 * 16, embedding_size)
+            Linear(6 * 10 * 16, self.embedding_size)
         ]
         self.branch = Sequential(*layers)
 

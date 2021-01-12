@@ -1,73 +1,54 @@
 import sys
 import numpy as np
+import cv2
 import scipy.io as sio
 
 import torch
 from torchvision.transforms import ToTensor, Normalize, Compose
 import torch.backends.cudnn as cudnn
 
-from homography_estimator.siamese.SiameseDataset import SiameseDataset
 from homography_estimator.siamese.Siamese import Siamese
+from homography_estimator.helper import camera_to_edge_map, infer_features_from_edge_map
+
 import utils
-
-
-def test_model(
-        model,
-        test_loader):
-
-    device = 'cpu'
-    if torch.cuda.is_available():
-        device = torch.device('cuda:{}'.format(0))
-        model = model.to(device)
-        cudnn.benchmark = True
-
-    # model.eval()
-    features = []
-    with torch.no_grad():
-        for i in range(test_loader.__len__()):
-            x = test_loader[i]
-            x = x.to(device)
-
-            feat = model.feature_numpy(x)
-            features.append(feat)
-    features = np.vstack((features))
-    return features
-
 
 
 if __name__ == '__main__':
 
-    world_cup_2014_dataset_path = utils.get_world_cup_2014_dataset_path()
+    binary_court = sio.loadmat(f'{utils.get_world_cup_2014_dataset_path()}worldcup2014.mat')
 
-    print('[INFO] Loading training data..')
-    data = sio.loadmat(f'{world_cup_2014_dataset_path}train_data_10k.mat')
-    pivot_images = data['pivot_images']
-    positive_images = data['positive_images']
-    cameras = data['cameras']
+    data = sio.loadmat(f'{utils.get_world_cup_2014_dataset_path()}worldcup_sampled_cameras.mat')
+    pivot_camera_params = data['pivot_cameras']
+    num_of_camera_params = len(pivot_camera_params)
+
+    im_h, im_w = 180, 320
+    edge_maps = np.zeros((num_of_camera_params, im_h, im_w), dtype=np.uint8)
+
+    for i in range(num_of_camera_params):
+        edge_map = camera_to_edge_map(binary_court, pivot_camera_params[i], img_h=im_h, img_w=im_w)
+
+        edge_map = cv2.cvtColor(edge_map, cv2.COLOR_BGR2GRAY)
+        edge_map = cv2.resize(edge_map, (320, 180))
+
+        edge_maps[i, :, :] = edge_map
 
     transform = Compose([
         ToTensor(),
         Normalize(mean=[0.0188], std=[0.128])])
 
-    test_dataset = SiameseDataset(
-        pivot_images,
-        positive_images,
-        batch_size=50,
-        num_of_batches=-1,
-        data_transform=transform,
-        is_train=False)
-
     siamese = Siamese()
+    siamese = utils.load_model(siamese, f'{utils.get_homography_estimator_model_path()}siamese_100.pth')
 
-    siamese = utils.load_model(siamese, f'{utils.get_homography_estimator_model_path()}siamese.pth')
-
-    features = test_model(siamese, test_dataset)
+    features = np.zeros((num_of_camera_params, siamese.embedding_size), dtype=np.float32)
+    for i in range(num_of_camera_params):
+        edge_map_features = infer_features_from_edge_map(siamese, edge_maps[i], transform)
+        features[i, :] = edge_map_features
 
     sio.savemat(
-        f'{utils.get_world_cup_2014_dataset_path()}feature_camera_10k.mat',
+        f'{utils.get_world_cup_2014_dataset_path()}database_camera_feature_100.mat',
         {
             'features': features,
-            'cameras': cameras},
+            'cameras': pivot_camera_params},
         do_compression=True)
 
     sys.exit()
