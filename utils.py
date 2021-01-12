@@ -27,7 +27,6 @@ def get_homography_estimator_model_path():
 
 def save_model(model, optimizer, history, filename):
     """Save trained model along with its optimizer and training, plottable history."""
-    model = model.to('cpu')
     state = {
         'state_dict': model.state_dict(),
         'optimizer': optimizer.state_dict(),

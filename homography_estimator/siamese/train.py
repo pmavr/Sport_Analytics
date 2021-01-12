@@ -17,39 +17,60 @@ import utils
 sns.set()
 
 
+def optimizer_to(optim, device):
+    for param in optim.state.values():
+        # Not sure there are any global tensors in the state dict
+        if isinstance(param, torch.Tensor):
+            param.data = param.data.to(device)
+            if param._grad is not None:
+                param._grad.data = param._grad.data.to(device)
+        elif isinstance(param, dict):
+            for subparam in param.values():
+                if isinstance(subparam, torch.Tensor):
+                    subparam.data = subparam.data.to(device)
+                    if subparam._grad is not None:
+                        subparam._grad.data = subparam._grad.data.to(device)
+
+
 def fit_model(
         model,
         opt_func,
         loss_func,
         train_loader,
-        val_loader=None,
         num_of_epochs=10,
-        scheduler=None,
-        silent=False):
+        num_of_epochs_until_save=20,
+        silent=False,
+        history=None):
 
     device = 'cpu'
     if torch.cuda.is_available():
-        device = torch.device('cuda:{}'.format(0))
+        device = torch.device('cuda')
         model = model.to(device)
-        loss_func = ContrastiveLoss(margin=1.0).cuda(device)
+        loss_func = loss_func.to(device)
+        optimizer_to(opt_func, device)
         cudnn.benchmark = True
 
     l2_distance = PairwiseDistance(p=2)
 
-    hist = {
-        'num_of_epochs': num_of_epochs,
-        'train_loss': [],
-        'val_loss': [],
-        'positive_distance': [],
-        'negative_distance': [],
-        'distance_ratio': []}
+    if history:
+        hist = history
+        num_of_trained_epochs = len(history['train_loss'])
+    else:
+        hist = {
+            'train_loss': [],
+            'val_loss': [],
+            'positive_distance': [],
+            'negative_distance': [],
+            'distance_ratio': []}
+        num_of_trained_epochs = 0
+    num_of_epochs += num_of_trained_epochs
 
     start_time = time()
     epoch_train_data = train_loader.total_dataset_size()
 
-    for epoch in range(num_of_epochs):
+    model.train()
+    for epoch in range(num_of_trained_epochs, num_of_epochs):
         epoch_start_time = time()
-        model.train()
 
         epoch_train_loss = 0.
         positive_distance = 0.
@@ -87,27 +108,16 @@ def fit_model(
         hist['negative_distance'].append(float(negative_distance))
         hist['distance_ratio'].append(float(distance_ratio))
 
-        if val_loader:
-            model.eval()
-            with torch.no_grad():
-                [val_x1, val_x2], val_y_true = next(iter(val_loader))
-                val_x1, val_x2, val_y_true = val_x1.to(device), val_x2.device(device), val_y_true.to(device)
-
-                val_y_pred = model((val_x1, val_x2))
-                val_loss = loss_func(val_y_true, val_y_pred)
-
-                epoch_val_loss = val_loss.item()
-                hist['val_loss'].append(epoch_val_loss)
-
-        if scheduler:
-            scheduler.step()
-
         epoch_duration = time() - epoch_start_time
 
-        train_loader.sample_once()
+        if (epoch + 1) % num_of_epochs_until_save == 0:
+            utils.save_model(network, optimizer, history,
+                             f"{utils.get_homography_estimator_model_path()}siamese_{len(history['train_loss'])}.pth")
+
+        train_loader.shuffle_data()
 
         if not silent:
-            print(f"Epoch {epoch+1}/{num_of_epochs}: Duration: {epoch_duration:.2f} "
+            print(f"Epoch {epoch + 1}/{num_of_epochs}: Duration: {epoch_duration:.2f} "
                   f"| Train Loss: {hist['train_loss'][-1]:.5f} "
                   f"| Positive Dist.: {hist['positive_distance'][-1]:.3f} "
                   f"| Negative Dist.: {hist['negative_distance'][-1]:.3f} "
@@ -123,12 +133,12 @@ def fit_model(
 
 def plot_results(history, info):
 
-    epochs_range = [i for i in range(history['num_of_epochs'])]
+    num_of_epochs = len(history['train_loss'])
+    epochs_range = [i for i in range(num_of_epochs)]
 
     fig, (loss_plot, distances, dist_ratio) = plt.subplots(1, 3, figsize=(10, 4))
 
     loss_plot.plot(epochs_range, history['train_loss'], color='red', label='train loss')
-    # loss_plot.plot(epochs_range, history['val_loss'], color='green', label='val loss')
     loss_plot.set_title('Epochs - Loss / {}'.format(info))
     loss_plot.legend()
 
@@ -166,27 +176,26 @@ if __name__ == '__main__':
         is_train=True)
 
     siamese = Siamese()
-
     criterion = ContrastiveLoss(margin=1.0)
-
     optimizer = Adam(
         filter(lambda p: p.requires_grad, siamese.parameters()),
         lr=.01,
         weight_decay=0.000001)
+
+    siamese, optimizer, history = utils.load_model(f'{utils.get_homography_estimator_model_path()}siamese_3.pth',
+                     siamese, optimizer, history=True)
 
     network, optimizer, history = fit_model(
         model=siamese,
         opt_func=optimizer,
         loss_func=criterion,
         train_loader=train_dataset,
-        val_loader=None,
-        num_of_epochs=10)
+        num_of_epochs=3,
+        history=history)
 
     plot_results(history, info='')
 
-    utils.save_model(network, optimizer,
-                     f"{utils.get_homography_estimator_model_path()}siamese_{history['num_of_epochs']}.pth")
-    utils.save_to_pickle_file(history,
-                              f"{utils.get_homography_estimator_model_path()}history_{history['num_of_epochs']}.pkl")
+    utils.save_model(network, optimizer, history,
+                     f"{utils.get_homography_estimator_model_path()}siamese_{len(history['train_loss'])}.pth")
 
-    # sys.exit()
+    sys.exit()
