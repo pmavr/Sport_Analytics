@@ -14,7 +14,7 @@ def infer_features_from_edge_map(
 
     device = 'cpu'
     if torch.cuda.is_available():
-        device = torch.device('cuda:{}'.format(0))
+        device = torch.device('cuda')
         model = model.to(device)
         cudnn.benchmark = True
 

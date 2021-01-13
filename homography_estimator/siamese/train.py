@@ -50,6 +50,7 @@ def fit_model(
         optimizer_to(opt_func, device)
         cudnn.benchmark = True
 
+
     l2_distance = PairwiseDistance(p=2)
 
     if history:
@@ -80,7 +81,7 @@ def fit_model(
             x1, x2, y_true = train_loader[i]
             x1, x2, y_true = x1.to(device), x2.to(device), y_true.to(device)
 
-            f1, f2 = siamese(x1, x2)
+            f1, f2 = model(x1, x2)
 
             opt_func.zero_grad()
             loss = loss_func(f1, f2, y_true)
@@ -111,8 +112,8 @@ def fit_model(
         epoch_duration = time() - epoch_start_time
 
         if (epoch + 1) % num_of_epochs_until_save == 0:
-            utils.save_model(network, optimizer, history,
-                             f"{utils.get_homography_estimator_model_path()}siamese_{len(history['train_loss'])}.pth")
+            utils.save_model(model, optimizer, hist,
+                             f"{utils.get_homography_estimator_model_path()}siamese_{len(hist['train_loss'])}.pth")
 
         train_loader.shuffle_data()
 
@@ -182,16 +183,17 @@ if __name__ == '__main__':
         lr=.01,
         weight_decay=0.000001)
 
-    siamese, optimizer, history = utils.load_model(f'{utils.get_homography_estimator_model_path()}siamese_3.pth',
-                     siamese, optimizer, history=True)
+    # siamese, optimizer, history = utils.load_model(f'{utils.get_homography_estimator_model_path()}siamese_400.pth',
+    #                  siamese, optimizer, history=True)
 
     network, optimizer, history = fit_model(
         model=siamese,
         opt_func=optimizer,
         loss_func=criterion,
         train_loader=train_dataset,
-        num_of_epochs=3,
-        history=history)
+        num_of_epochs=10,
+        num_of_epochs_until_save=20)
+        # history=history)
 
     plot_results(history, info='')
 
