@@ -63,18 +63,32 @@ def save_to_pickle_file(data, filename):
         f.close()
 
 
-def plot_image(imgs, titles):
-    cols = 1
-    rows = len(imgs)
-    axes = []
-    fig = plt.figure()
-    for a in range(rows * cols):
-        axes.append(fig.add_subplot(rows, cols, a + 1))
-        subplot_title = ("Subplot" + str(a))
-        axes[-1].set_title(titles[a])
-        plt.imshow(imgs[a])
-    fig.tight_layout()
+def plot_image(img, title=''):
+    plt.imshow(img)
+    plt.title(title)
     plt.show()
+
+
+def show_image(img_list, msg_list=None):
+    """
+    Display N images. Esc char to close window. For debugging purposes.
+    :param img_list: A list with images to be displayed.
+    :param msg_list: A list with title for each image to be displayed. If not None, it has to be of equal length to
+    the image list.
+    :return:
+    """
+    if msg_list is None:
+        msg_list = [f'{i}' for i in range(len(img_list))]
+
+    for i in range(len(img_list)):
+        cv2.imshow(msg_list[i], img_list[i])
+
+    while 1:
+        k = cv2.waitKey(0)
+        if k == 27:
+            break
+    for msg in msg_list:
+        cv2.destroyWindow(msg)
 
 
 def video_player(video_file):
