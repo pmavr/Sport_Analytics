@@ -13,20 +13,18 @@ import utils
 
 
 if __name__ == '__main__':
-
     data = sio.loadmat(f'{utils.get_world_cup_2014_dataset_path()}database_camera_feature_10.mat')
     features = data['features']
     cameras = data['cameras']
 
     # get edge map
     edge_map = cv2.imread(f'{utils.get_project_root()}homography_estimator/images_for_testing/001_AB_fake_D.png')
-    # edge_map = cv2.imread(f'{utils.get_project_root()}homography_estimator/images_for_testing/003_AB_fake_D.png')
-    # edge_map = cv2.imread(f'{utils.get_project_root()}homography_estimator/images_for_testing/013_AB_fake_D.png')
-    # edge_map = cv2.imread(f'{utils.get_project_root()}homography_estimator/images_for_testing/014_AB_fake_D.png')
+    # edge_map = cv2.imread(f'{utils.get_project_root()}homography_estimator/court_edge_maps/003_AB_fake_D.png')
+    # edge_map = cv2.imread(f'{utils.get_project_root()}homography_estimator/court_edge_maps/013_AB_fake_D.png')
+    # edge_map = cv2.imread(f'{utils.get_project_root()}homography_estimator/court_edge_maps/014_AB_fake_D.png')
     edge_map = cv2.resize(edge_map, (320, 180))
     edge_map = cv2.cvtColor(edge_map, cv2.COLOR_BGR2GRAY)
     _, edge_map = cv2.threshold(edge_map, 10, 255, cv2.THRESH_BINARY)
-
 
     # forward edge map through siamese & and get embedding
     transform = Compose([
@@ -48,8 +46,6 @@ if __name__ == '__main__':
     binary_court = sio.loadmat(f'{utils.get_world_cup_2014_dataset_path()}worldcup2014.mat')
     retrieved_image = camera_to_edge_map(binary_court, edge_map_camera_params)
 
-    utils.plot_image(
-        imgs=[edge_map, retrieved_image],
-        titles=['edge map','retrieved image'])
+    utils.show_image([edge_map], ['edge map'])
 
-    # sys.exit()
+    sys.exit()
