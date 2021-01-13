@@ -1,9 +1,9 @@
 import cv2
-import tensorflow as tf
 import torch
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pickle
+import numpy as np
 
 
 def get_project_root():
@@ -14,15 +14,15 @@ def get_project_root():
 
 
 def get_world_cup_2014_dataset_path():
-    return f'{get_project_root()}/datasets/world_cup_2014/'
+    return f'{get_project_root()}datasets/world_cup_2014/'
 
 
 def get_edge_map_generator_model_path():
-    return f'{get_project_root()}/edge_map_generator/generated_models/'
+    return f'{get_project_root()}edge_map_generator/generated_models/'
 
 
 def get_homography_estimator_model_path():
-    return f'{get_project_root()}/homography_estimator/generated_models/'
+    return f'{get_project_root()}homography_estimator/generated_models/'
 
 
 def save_model(model, optimizer, history, filename):
@@ -63,9 +63,17 @@ def save_to_pickle_file(data, filename):
         f.close()
 
 
-def plot_image(img, title=''):
-    plt.imshow(img)
-    plt.title(title)
+def plot_image(imgs, titles):
+    cols = 1
+    rows = len(imgs)
+    axes = []
+    fig = plt.figure()
+    for a in range(rows * cols):
+        axes.append(fig.add_subplot(rows, cols, a + 1))
+        subplot_title = ("Subplot" + str(a))
+        axes[-1].set_title(titles[a])
+        plt.imshow(imgs[a])
+    fig.tight_layout()
     plt.show()
 
 
