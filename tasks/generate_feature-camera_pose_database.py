@@ -7,8 +7,9 @@ import torch
 from torchvision.transforms import ToTensor, Normalize, Compose
 import torch.backends.cudnn as cudnn
 
+import Helper
 from homography_estimator.siamese.Siamese import Siamese
-from homography_estimator.helper import camera_to_edge_map, infer_features_from_edge_map
+
 
 import utils
 
@@ -18,10 +19,9 @@ def convert_camera_params_to_edge_maps(binary_court_, camera_params, edge_map_h=
     edge_maps_ = np.zeros((num_of_camera_params, edge_map_h, edge_map_w), dtype=np.uint8)
 
     for i in range(num_of_camera_params):
-        edge_map_ = camera_to_edge_map(binary_court_, camera_params[i], img_h=edge_map_h, img_w=edge_map_w)
-
-        edge_map_ = cv2.cvtColor(edge_map_, cv2.COLOR_BGR2GRAY)
+        edge_map_ = Helper.camera_to_edge_map(binary_court_, camera_params[i], img_h=edge_map_h, img_w=edge_map_w)
         edge_map_ = cv2.resize(edge_map_, (edge_map_w, edge_map_h))
+        edge_map_ = cv2.cvtColor(edge_map_, cv2.COLOR_BGR2GRAY)
 
         edge_maps_[i, :, :] = edge_map_
     return edge_maps_
@@ -31,12 +31,13 @@ def extract_features_from_edge_maps(model, data_transform, edge_maps_):
     num_of_camera_params = edge_maps_.shape[0]
     features = np.zeros((num_of_camera_params, model.embedding_size), dtype=np.float32)
     for i in range(num_of_camera_params):
-        edge_map_features = infer_features_from_edge_map(model, edge_maps_[i], data_transform)
+        edge_map_features = Helper.infer_features_from_edge_map(model, edge_maps_[i], data_transform)
         features[i, :] = edge_map_features
     return features
 
 
 if __name__ == '__main__':
+
 
     binary_court = sio.loadmat(f'{utils.get_world_cup_2014_dataset_path()}worldcup2014.mat')
     data = sio.loadmat(f'{utils.get_world_cup_2014_dataset_path()}worldcup_sampled_cameras.mat')
