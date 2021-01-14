@@ -17,6 +17,10 @@ def get_world_cup_2014_dataset_path():
     return f'{get_project_root()}datasets/world_cup_2014/'
 
 
+def get_grass_mask_estimator_model_path():
+    return f'{get_project_root()}grass_mask_estimator/generated_models/'
+
+
 def get_edge_map_generator_model_path():
     return f'{get_project_root()}edge_map_generator/generated_models/'
 
