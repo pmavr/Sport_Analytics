@@ -60,11 +60,19 @@ def load_model(filename, model, gen_optimizer=None, discr_optimizer=None, histor
     return model, gen_optimizer, discr_optimizer, history
 
 
+def save_grass_mask_estimator_output_images(court_images_, grass_masks_, predicted_grass_masks_):
+    for i in range(len(court_images_)):
+        img_delimiter = np.zeros((256, 2, 3), dtype=np.uint8)
+        img_to_be_saved = np.concatenate(
+            (court_images_[i], img_delimiter, grass_masks_[i], img_delimiter, predicted_grass_masks_[i]), axis=1)
+        cv2.imwrite(f'{utils.get_project_root()}tasks/results/grass_mask_estimator/court_real_fake_{i}.jpg', img_to_be_saved)
+
+
 if __name__ == '__main__':
     import sys
+    import cv2
     import scipy.io as sio
 
-    model_path = utils.get_grass_mask_estimator_model_path()
     print('Loading World Cup 2014 dataset')
     data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_test_dataset.npz')
     court_images = data['court_images']
@@ -96,5 +104,7 @@ if __name__ == '__main__':
             'real_grass_masks': grass_masks,
             'fake_grass_masks': predicted_grass_masks},
         do_compression=True)
+
+    save_grass_mask_estimator_output_images(court_images, grass_masks, predicted_grass_masks)
 
     sys.exit()
