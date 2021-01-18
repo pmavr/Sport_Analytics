@@ -3,34 +3,190 @@ from time import time
 import numpy as np
 
 import torch
-from torchvision.transforms import ToTensor, Normalize, Compose
+from torchvision.transforms import ToTensor, Resize, Compose
 import torch.backends.cudnn as cudnn
 
 from grass_mask_estimator.Pix2Pix import Pix2Pix
 from grass_mask_estimator.Pix2PixDataset import Pix2PixDataset
+from grass_mask_estimator.GANLoss import GANLoss
 import utils
 
 
-if __name__ == '__main__':
+def optimizer_to(optim, device):
+    for param in optim.state.values():
+        # Not sure there are any global tensors in the state dict
+        if isinstance(param, torch.Tensor):
+            param.data = param.data.to(device)
+            if param._grad is not None:
+                param._grad.data = param._grad.data.to(device)
+        elif isinstance(param, dict):
+            for subparam in param.values():
+                if isinstance(subparam, torch.Tensor):
+                    subparam.data = subparam.data.to(device)
+                    if subparam._grad is not None:
+                        subparam._grad.data = subparam._grad.data.to(device)
 
+
+def fit_model(model, generator_opt_func, discriminator_opt_func, gan_loss_func, l1_loss_func,
+              train_loader, num_of_epochs, num_of_epochs_until_save, silent=False, history=None):
+    device = 'cpu'
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+        model = model.to(device)
+
+        gan_loss_func.to_cuda()
+        l1_loss_func = l1_loss_func.to(device)
+
+        optimizer_to(generator_opt_func, device)
+        optimizer_to(discriminator_opt_func, device)
+
+        cudnn.benchmark = True
+
+    if history:
+        hist = history
+        num_of_trained_epochs = len(hist[next(iter(hist))])
+    else:
+        hist = {
+            'discriminator_real_loss': [],
+            'discriminator_fake_loss': [],
+            'generator_gan_loss': [],
+            'generator_l1_loss': []}
+        num_of_trained_epochs = 0
+    num_of_epochs += num_of_trained_epochs
+
+    start_time = time()
+    epoch_train_data = train_loader.total_dataset_size()
+
+    model.train()
+    for epoch in range(num_of_trained_epochs, num_of_epochs):
+        epoch_start_time = time()
+
+        epoch_discriminator_real_loss = 0.
+        epoch_discriminator_fake_loss = 0.
+        epoch_generator_gan_loss = 0.
+        epoch_generator_l1_loss = 0.
+
+        for i in range(train_loader.__len__()):
+            court_image, grass_mask = train_loader[i]
+            court_image = court_image.to(device)
+            grass_mask = grass_mask.to(device)
+
+            real_grass_mask, fake_grass_mask = model(court_image, grass_mask)
+
+            discriminator_opt_func.zero_grad()
+            discriminator_real_loss, discriminator_fake_loss = model.backward_discriminator(
+                real_input=court_image, real_output=real_grass_mask, fake_output=fake_grass_mask,
+                gan_criterion=gan_loss_func)
+            discriminator_opt_func.step()
+
+            generator_opt_func.zero_grad()
+            generator_gan_loss, generator_l1_loss = model.backward_generator(
+                real_input=court_image, real_output=real_grass_mask, fake_output=fake_grass_mask,
+                gan_criterion=gan_loss_func, l1_criterion=l1_loss_func)
+            generator_opt_func.step()
+
+            epoch_discriminator_real_loss += discriminator_real_loss.item()
+            epoch_discriminator_fake_loss += discriminator_fake_loss.item()
+            epoch_generator_gan_loss += generator_gan_loss.item()
+            epoch_generator_l1_loss += generator_l1_loss.item()
+
+        epoch_discriminator_real_loss /= epoch_train_data
+        epoch_discriminator_fake_loss /= epoch_train_data
+        epoch_generator_gan_loss /= epoch_train_data
+        epoch_generator_l1_loss /= epoch_train_data
+
+        hist['discriminator_real_loss'].append(epoch_discriminator_real_loss)
+        hist['discriminator_fake_loss'].append(epoch_discriminator_fake_loss)
+        hist['generator_gan_loss'].append(epoch_generator_gan_loss)
+        hist['generator_l1_loss'].append(epoch_generator_l1_loss)
+
+        epoch_duration = time() - epoch_start_time
+
+        if (epoch + 1) % num_of_epochs_until_save == 0:
+            model_components = {
+                'model': model,
+                'generator_opt_func': generator_opt_func,
+                'discriminator_opt_func': discriminator_opt_func}
+            utils.save_model(model_components, hist,
+                             f"{utils.get_grass_mask_estimator_model_path()}pix2pix_{len(hist[next(iter(hist))])}.pth")
+
+        if not silent:
+            print(f"Epoch {epoch + 1}/{num_of_epochs}: Duration: {epoch_duration:.2f} "
+                  f"| Discr. Real Loss: {hist['discriminator_real_loss'][-1]:.5f} "
+                  f"| Discr. Fake Loss: {hist['discriminator_fake_loss'][-1]:.3f} "
+                  f"| Gener. GAN Loss: {hist['generator_gan_loss'][-1]:.3f} "
+                  f"| Gener. L1 Loss: {hist['generator_l1_loss'][-1]:.3f}")
+        else:
+            print('.', end='')
+
+    training_time = time() - start_time
+    print('\nTotal training time: {:.2f}s'.format(training_time))
+
+    return model, generator_opt_func, discriminator_opt_func, hist
+
+
+def load_model(filename, model, gen_optimizer=None, discr_optimizer=None, history=None):
+    """Load trained model along with its optimizer and training, plottable history."""
+    model_components = torch.load(filename)
+    model.load_state_dict(model_components['model'])
+    if gen_optimizer:
+        gen_optimizer.load_state_dict(model_components['generator_opt_func'])
+    if discr_optimizer:
+        discr_optimizer.load_state_dict(model_components['discriminator_opt_func'])
+    if history:
+        history = model_components['history']
+    return model, gen_optimizer, discr_optimizer, history
+
+
+if __name__ == '__main__':
     model_path = utils.get_grass_mask_estimator_model_path()
     print('Loading World Cup 2014 dataset')
-    train_data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset.npz')
+    data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset.npz')
+    court_images = data['court_images']
+    grass_masks = data['grass_masks']*255
 
     transform = Compose([
         ToTensor(),
-        Normalize(mean=[0.0188], std=[0.128])])
+        Resize((256, 256))])
 
     train_dataset = Pix2PixDataset(
-        court_image_data=train_data['court_images'],
-        edge_map_data=train_data['edge_maps'],
-        batch_size=32,
-        num_of_batches=128,
+        court_image_data=court_images,
+        grass_mask_data=grass_masks,
+        batch_size=1,
+        num_of_batches=court_images.shape[0],
         data_transform=transform,
         is_train=True)
 
     pix2pix = Pix2Pix(is_train=True)
 
+    criterionGAN = GANLoss(use_lsgan=False, tensor=torch.Tensor)
+    criterionL1 = torch.nn.L1Loss()
 
+    generator_optimizer = torch.optim.Adam(
+        pix2pix.generator.parameters(), lr=.0002, betas=(.5, 0.999))
+    discriminator_optimizer = torch.optim.Adam(
+        pix2pix.discriminator.parameters(), lr=.0002, betas=(.5, 0.999))
 
-    sys.exit()
+    # pix2pix, generator_optimizer, discriminator_optimizer, history = load_model(
+    #     f'{utils.get_grass_mask_estimator_model_path()}pix2pix_1.pth',
+    #                  pix2pix, generator_optimizer, discriminator_optimizer, history=True)
+
+    network, generator_optimizer, discriminator_optimizer, history = fit_model(
+        model=pix2pix,
+        generator_opt_func=generator_optimizer,
+        discriminator_opt_func=discriminator_optimizer,
+        gan_loss_func=criterionGAN,
+        l1_loss_func=criterionL1,
+        train_loader=train_dataset,
+        num_of_epochs=50,
+        num_of_epochs_until_save=20)
+        # history=history)
+
+    model_components = {
+        'model': network,
+        'generator_opt_func': generator_optimizer,
+        'discriminator_opt_func': discriminator_optimizer}
+    utils.save_model(model_components, history,
+                     f"{utils.get_grass_mask_estimator_model_path()}pix2pix_{len(history[next(iter(history))])}.pth")
+
+sys.exit()

@@ -23,7 +23,7 @@ class Pix2PixDataset(Dataset):
         self.data_transform = data_transform
         self.is_train = is_train
 
-    def _get_train_item(self, index):
+    def __getitem__(self, index):
 
         court_image = self.court_image_data[index]
         grass_mask = self.grass_mask_data[index]
@@ -34,19 +34,10 @@ class Pix2PixDataset(Dataset):
         grass_mask = self.data_transform(grass_mask)
         grass_mask = transforms.Normalize(mean=[.5], std=[.5])(grass_mask)
 
-        return court_image, grass_mask
-
-    def _get_test_item(self, index):
-        pass
+        return torch.stack([court_image]), torch.stack([grass_mask])
 
     def total_dataset_size(self):
         return self.num_of_batches * self.batch_size
-
-    def __getitem__(self, index) -> T_co:
-        if self.is_train:
-            return self._get_train_item(index)
-        else:
-            return self._get_test_item(index)
 
     def __len__(self):
         return self.num_of_batches

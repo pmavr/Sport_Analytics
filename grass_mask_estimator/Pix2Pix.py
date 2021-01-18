@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 import functools
 from torch.optim import lr_scheduler
+from torch.autograd import Variable
 
 from grass_mask_estimator.ImagePool import ImagePool
-from grass_mask_estimator.GANLoss import GANLoss
 import utils
 
 
@@ -86,35 +86,18 @@ class Pix2Pix(nn.Module):
 
     def __init__(self, is_train=True):
         super().__init__()
-        self.is_train =  is_train
+        self.is_train = is_train
         self.input_shape = (256, 256, 3)
-        learning_rate = .0002
-        beta1 = .5
-        self.Tensor = torch.Tensor
+        self.lambda_a = 100.
 
         self.generator = self._define_generator(
             input_nc=3, output_nc=1, ngf=64, norm='batch', use_dropout=True, init_type='normal')
 
-        if self.is_train:
-            self.discriminator = self._define_discriminator(
-                input_nc=4, ndf=64, n_layers_D=3, norm='batch', use_sigmoid=True, init_type='normal')
+        self.discriminator = self._define_discriminator(
+            input_nc=4, ndf=64, n_layers_D=3, norm='batch', use_sigmoid=True, init_type='normal')
 
-            self.fake_AB_pool = ImagePool(pool_size=0)
-            # define loss functions
-            self.criterionGAN = GANLoss(use_lsgan=False, tensor=self.Tensor)
-            self.criterionL1 = torch.nn.L1Loss()
+        self.fake_AB_pool = ImagePool(pool_size=0)
 
-            # initialize optimizers
-            self.schedulers = []
-            self.optimizers = []
-            self.optimizer_G = torch.optim.Adam(self.generator.parameters(),
-                                                lr=learning_rate, betas=(beta1, 0.999))
-            self.optimizer_D = torch.optim.Adam(self.discriminator.parameters(),
-                                                lr=learning_rate, betas=(beta1, 0.999))
-            self.optimizers.append(self.optimizer_G)
-            self.optimizers.append(self.optimizer_D)
-            for optimizer in self.optimizers:
-                self.schedulers.append(get_scheduler(optimizer))
 
         print('---------- Networks initialized -------------')
         self.print_network(self.generator)
@@ -122,11 +105,7 @@ class Pix2Pix(nn.Module):
             self.print_network(self.discriminator)
         print('-----------------------------------------------')
 
-    def _define_generator(
-            self, input_nc, output_nc, ngf,
-            norm='batch',
-            use_dropout=False,
-            init_type='normal'):
+    def _define_generator(self, input_nc, output_nc, ngf, norm='batch', use_dropout=False, init_type='normal'):
         norm_layer = get_norm_layer(norm_type=norm)
 
         netG = UnetGenerator(
@@ -136,12 +115,7 @@ class Pix2Pix(nn.Module):
         init_weights(netG, init_type=init_type)
         return netG
 
-    def _define_discriminator(
-            self, input_nc, ndf,
-            n_layers_D=3,
-            norm='batch',
-            use_sigmoid=False,
-            init_type='normal'):
+    def _define_discriminator(self, input_nc, ndf, n_layers_D=3, norm='batch', use_sigmoid=False, init_type='normal'):
         norm_layer = get_norm_layer(norm_type=norm)
 
         netD = NLayerDiscriminator(
@@ -158,13 +132,54 @@ class Pix2Pix(nn.Module):
         print(net)
         print('Total number of parameters: %d' % num_params)
 
+    def forward(self, input_, output_):
+        real_input = Variable(input_)
+        fake_output = self.generator(real_input)
+        real_output = Variable(output_)
+        return real_output, fake_output
+
+    def backward_discriminator(self, real_input, real_output, fake_output, gan_criterion):
+        # Fake
+        fake_AB = self.fake_AB_pool.query(torch.cat((real_input, fake_output), 1).data)
+        pred_fake = self.discriminator(fake_AB.detach())
+        loss_discriminator_fake = gan_criterion(input=pred_fake, target_is_real=False)
+
+        # Real
+        real_AB = torch.cat((real_input, real_output), 1)
+        pred_real = self.discriminator(real_AB)
+        loss_discriminator_real = gan_criterion(input=pred_real, target_is_real=True)
+
+        # Combined loss
+        loss_discriminator = (loss_discriminator_fake + loss_discriminator_real) * 0.5
+        loss_discriminator.backward()
+
+        return loss_discriminator_real, loss_discriminator_fake
+
+    def backward_generator(self, real_input, real_output, fake_output, gan_criterion, l1_criterion):
+        # First, G(A) should fake the discriminator
+        fake_AB = torch.cat((real_input, fake_output), 1)
+        pred_fake = self.discriminator(fake_AB)
+        loss_generator_gan = gan_criterion(pred_fake, True)
+
+        # Second, G(A) = B
+        loss_generator_l1 = l1_criterion(fake_output, real_output) * self.lambda_a
+
+        loss_generator = loss_generator_gan + loss_generator_l1
+        loss_generator.backward()
+
+        return loss_generator_gan, loss_generator_l1
+
+    def infer(self, input_):
+        real_input = Variable(input_)
+        fake_output = self.generator(real_input)
+        return fake_output
+
 
 class UnetGenerator(nn.Module):
 
     def __init__(self, input_nc, output_nc, num_downs, ngf=64,
-                 norm_layer=nn.BatchNorm2d, use_dropout=False, gpu_ids=[]):
+                 norm_layer=nn.BatchNorm2d, use_dropout=False):
         super(UnetGenerator, self).__init__()
-        self.gpu_ids = gpu_ids
 
         # construct unet structure
         unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)
@@ -178,10 +193,7 @@ class UnetGenerator(nn.Module):
         self.model = unet_block
 
     def forward(self, input):
-        if self.gpu_ids and isinstance(input.data, torch.cuda.FloatTensor):
-            return nn.parallel.data_parallel(self.model, input, self.gpu_ids)
-        else:
-            return self.model(input)
+        return self.model(input)
 
 
 # Defines the submodule with skip connection.
@@ -240,12 +252,10 @@ class UnetSkipConnectionBlock(nn.Module):
             return torch.cat([x, self.model(x)], 1)
 
 
-
 # Defines the PatchGAN discriminator with the specified arguments.
 class NLayerDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=False, gpu_ids=[]):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=False):
         super(NLayerDiscriminator, self).__init__()
-        self.gpu_ids = gpu_ids
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
@@ -287,7 +297,4 @@ class NLayerDiscriminator(nn.Module):
         self.model = nn.Sequential(*sequence)
 
     def forward(self, input):
-        if len(self.gpu_ids) and isinstance(input.data, torch.cuda.FloatTensor):
-            return nn.parallel.data_parallel(self.model, input, self.gpu_ids)
-        else:
-            return self.model(input)
+        return self.model(input)
