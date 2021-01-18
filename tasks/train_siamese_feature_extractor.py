@@ -32,16 +32,8 @@ def optimizer_to(optim, device):
                         subparam._grad.data = subparam._grad.data.to(device)
 
 
-def fit_model(
-        model,
-        opt_func,
-        loss_func,
-        train_loader,
-        num_of_epochs=10,
-        num_of_epochs_until_save=20,
-        silent=False,
-        history=None):
-
+def fit_model(model, opt_func, loss_func, train_loader,
+              num_of_epochs=10, num_of_epochs_until_save=20, silent=False, history=None):
     device = 'cpu'
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -49,7 +41,6 @@ def fit_model(
         loss_func = loss_func.to(device)
         optimizer_to(opt_func, device)
         cudnn.benchmark = True
-
 
     l2_distance = PairwiseDistance(p=2)
 
@@ -112,8 +103,11 @@ def fit_model(
         epoch_duration = time() - epoch_start_time
 
         if (epoch + 1) % num_of_epochs_until_save == 0:
-            utils.save_model(model, optimizer, hist,
-                             f"{utils.get_homography_estimator_model_path()}siamese_{len(hist['train_loss'])}.pth")
+            model_components = {
+                'model': model,
+                'opt_func': optimizer}
+            utils.save_model(model_components, hist,
+                             f"{utils.get_homography_estimator_model_path()}siamese_{len(hist[next(iter(hist))])}.pth")
 
         train_loader.shuffle_data()
 
@@ -133,7 +127,6 @@ def fit_model(
 
 
 def plot_results(history, info):
-
     num_of_epochs = len(history['train_loss'])
     epochs_range = [i for i in range(num_of_epochs)]
 
@@ -155,8 +148,18 @@ def plot_results(history, info):
     plt.show()
 
 
-if __name__ == '__main__':
+def load_model(filename, model, optimizer=None, history=None):
+    """Load trained model along with its optimizer and training, plottable history."""
+    parameters = torch.load(filename)
+    model.load_state_dict(parameters['state_dict'])
+    if optimizer:
+        optimizer.load_state_dict(parameters['optimizer'])
+    if history:
+        history = parameters['history']
+    return model, optimizer, history
 
+
+if __name__ == '__main__':
     world_cup_2014_dataset_path = utils.get_world_cup_2014_dataset_path()
 
     print('[INFO] Loading training data..')
@@ -183,7 +186,7 @@ if __name__ == '__main__':
         lr=.01,
         weight_decay=0.000001)
 
-    # siamese, optimizer, history = utils.load_model(f'{utils.get_homography_estimator_model_path()}siamese_400.pth',
+    # siamese, optimizer, history = load_model(f'{utils.get_homography_estimator_model_path()}siamese_400.pth',
     #                  siamese, optimizer, history=True)
 
     network, optimizer, history = fit_model(
@@ -193,11 +196,14 @@ if __name__ == '__main__':
         train_loader=train_dataset,
         num_of_epochs=10,
         num_of_epochs_until_save=20)
-        # history=history)
+    # history=history)
 
     plot_results(history, info='')
 
-    utils.save_model(network, optimizer, history,
-                     f"{utils.get_homography_estimator_model_path()}siamese_{len(history['train_loss'])}.pth")
+    model_components = {
+        'model': network,
+        'opt_func': optimizer}
+    utils.save_model(model_components, history,
+                     f"{utils.get_homography_estimator_model_path()}siamese_{len(history[next(iter(history))])}.pth")
 
     sys.exit()

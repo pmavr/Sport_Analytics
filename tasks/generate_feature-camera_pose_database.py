@@ -36,6 +36,17 @@ def extract_features_from_edge_maps(model, data_transform, edge_maps_):
     return features
 
 
+def load_model(filename, model, optimizer=None, history=None):
+    """Load trained model along with its optimizer and training, plottable history."""
+    model_components = torch.load(filename)
+    model.load_state_dict(model_components['model'])
+    if optimizer:
+        optimizer.load_state_dict(model_components['optimizer'])
+    if history:
+        history = model_components['history']
+    return model, optimizer, history
+
+
 if __name__ == '__main__':
 
 
@@ -48,7 +59,7 @@ if __name__ == '__main__':
         Normalize(mean=[0.0188], std=[0.128])])
 
     siamese = Siamese()
-    siamese, optimizer, history = utils.load_model(f'{utils.get_homography_estimator_model_path()}siamese_500.pth',
+    siamese, optimizer, history = load_model(f'{utils.get_homography_estimator_model_path()}siamese_500.pth',
                                                    siamese)
 
     edge_maps = convert_camera_params_to_edge_maps(
