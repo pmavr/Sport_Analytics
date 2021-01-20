@@ -6,7 +6,7 @@ import scipy.io as sio
 from torchvision.transforms import ToTensor, Normalize, Compose
 
 from homography_estimator.Camera import Camera
-from homography_estimator.siamese.Siamese import Siamese
+from models.siamese.Siamese import Siamese
 import Helper
 import utils
 

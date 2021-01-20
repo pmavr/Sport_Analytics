@@ -5,8 +5,7 @@ import functools
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
 
-from grass_mask_estimator.ImagePool import ImagePool
-import utils
+from models.pix2pix.ImagePool import ImagePool
 
 
 def weights_init_normal(m):

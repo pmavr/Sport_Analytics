@@ -3,12 +3,10 @@ import numpy as np
 import cv2
 import scipy.io as sio
 
-import torch
 from torchvision.transforms import ToTensor, Normalize, Compose
-import torch.backends.cudnn as cudnn
 
 import Helper
-from homography_estimator.siamese.Siamese import Siamese
+from models.siamese.Siamese import Siamese
 
 
 import utils

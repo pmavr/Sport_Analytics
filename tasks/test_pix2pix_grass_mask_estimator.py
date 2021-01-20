@@ -4,8 +4,8 @@ import torch
 from torchvision.transforms import ToTensor, Resize, Compose
 import torch.backends.cudnn as cudnn
 
-from grass_mask_estimator.Pix2Pix import Pix2Pix
-from grass_mask_estimator.Pix2PixDataset import Pix2PixDataset
+from models.pix2pix.Pix2Pix import Pix2Pix
+from models.pix2pix.Pix2PixDataset import Pix2PixDataset
 import utils
 
 
