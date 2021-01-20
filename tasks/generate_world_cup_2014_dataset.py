@@ -152,7 +152,7 @@ if __name__ == '__main__':
 
     train_dataset = augment_dataset(train_dataset, flip=True)
 
-    print('Exporting dataset to npz files')
+    print('Exporting dataset to files')
     sio.savemat(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset',
                 {
                      'court_images': train_dataset['court_images'],
