@@ -17,6 +17,10 @@ def get_world_cup_2014_dataset_path():
     return f'{get_project_root()}datasets/world_cup_2014/'
 
 
+def get_world_cup_2014_scc_dataset_path():
+    return f'{get_project_root()}datasets/world_cup_2014_scc/'
+
+
 def get_generated_models_path():
     return f'{get_project_root()}models/generated_models/'
 
