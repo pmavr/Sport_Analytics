@@ -2,7 +2,6 @@ import sys
 import cv2
 import numpy as np
 import scipy.io as sio
-from numpy import savez_compressed
 import glob
 import tarfile
 
