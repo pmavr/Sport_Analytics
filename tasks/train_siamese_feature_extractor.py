@@ -148,17 +148,6 @@ def plot_results(history, info):
     plt.show()
 
 
-def load_model(filename, model, optimizer=None, history=None):
-    """Load trained model along with its optimizer and training, plottable history."""
-    parameters = torch.load(filename)
-    model.load_state_dict(parameters['state_dict'])
-    if optimizer:
-        optimizer.load_state_dict(parameters['optimizer'])
-    if history:
-        history = parameters['history']
-    return model, optimizer, history
-
-
 if __name__ == '__main__':
     world_cup_2014_dataset_path = utils.get_world_cup_2014_dataset_path()
 
@@ -186,7 +175,7 @@ if __name__ == '__main__':
         lr=.01,
         weight_decay=0.000001)
 
-    # siamese, optimizer, history = load_model(f'{utils.get_homography_estimator_model_path()}siamese_400.pth',
+    # siamese, optimizer, history = Siamese.load_model(f'{utils.get_homography_estimator_model_path()}siamese_400.pth',
     #                  siamese, optimizer, history=True)
 
     network, optimizer, history = fit_model(

@@ -125,19 +125,6 @@ def fit_model(model, generator_opt_func, discriminator_opt_func, gan_loss_func, 
     return model, generator_opt_func, discriminator_opt_func, hist
 
 
-def load_model(filename, model, gen_optimizer=None, discr_optimizer=None, history=None):
-    """Load trained model along with its optimizer and training, plottable history."""
-    model_components = torch.load(filename)
-    model.load_state_dict(model_components['model'])
-    if gen_optimizer:
-        gen_optimizer.load_state_dict(model_components['generator_opt_func'])
-    if discr_optimizer:
-        discr_optimizer.load_state_dict(model_components['discriminator_opt_func'])
-    if history:
-        history = model_components['history']
-    return model, gen_optimizer, discr_optimizer, history
-
-
 if __name__ == '__main__':
     model_path = utils.get_grass_mask_estimator_model_path()
     print('Loading World Cup 2014 dataset')
@@ -167,7 +154,7 @@ if __name__ == '__main__':
     discriminator_optimizer = torch.optim.Adam(
         pix2pix.discriminator.parameters(), lr=.0002, betas=(.5, 0.999))
 
-    # pix2pix, generator_optimizer, discriminator_optimizer, history = load_model(
+    # pix2pix, generator_optimizer, discriminator_optimizer, history = Pix2Pix.load_model(
     #     f'{utils.get_grass_mask_estimator_model_path()}pix2pix_1.pth',
     #                  pix2pix, generator_optimizer, discriminator_optimizer, history=True)
 

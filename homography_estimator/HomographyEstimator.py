@@ -28,7 +28,7 @@ class HomographyEstimator:
             Normalize(mean=[0.0188], std=[0.128])])
 
         siamese = Siamese()
-        self.model, _, _ = utils.load_model(model_filename, siamese)
+        self.model, _, _ = Siamese.load_model(model_filename, siamese)
 
     def infer_camera_from_edge_map(self, edge_map_):
         edge_map_features = Helper.infer_features_from_edge_map(self.model, edge_map_, self.transform)

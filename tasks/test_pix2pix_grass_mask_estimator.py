@@ -47,19 +47,6 @@ def tensor2im(image_tensor, imtype=np.uint8):
     return image_numpy.astype(imtype)
 
 
-def load_model(filename, model, gen_optimizer=None, discr_optimizer=None, history=None):
-    """Load trained model along with its optimizer and training, plottable history."""
-    model_components = torch.load(filename)
-    model.load_state_dict(model_components['model'])
-    if gen_optimizer:
-        gen_optimizer.load_state_dict(model_components['generator_opt_func'])
-    if discr_optimizer:
-        discr_optimizer.load_state_dict(model_components['discriminator_opt_func'])
-    if history:
-        history = model_components['history']
-    return model, gen_optimizer, discr_optimizer, history
-
-
 def save_grass_mask_estimator_output_images(court_images_, grass_masks_, predicted_grass_masks_):
     for i in range(len(court_images_)):
         img_delimiter = np.zeros((256, 2, 3), dtype=np.uint8)
@@ -91,14 +78,14 @@ if __name__ == '__main__':
 
     pix2pix = Pix2Pix(is_train=False)
 
-    pix2pix, _, _, _ = load_model(f'{utils.get_grass_mask_estimator_model_path()}pix2pix_50.pth', pix2pix)
+    pix2pix, _, _, _ = Pix2Pix.load_model(f'{utils.get_grass_mask_estimator_model_path()}pix2pix_50.pth', pix2pix)
 
     court_images, grass_masks, predicted_grass_masks = evaluate_model(
         model=pix2pix,
         test_loader=test_dataset)
 
     sio.savemat(
-        f'{utils.get_world_cup_2014_dataset_path()}grass_mask_estimator_output.mat',
+        f'{utils.get_world_cup_2014_dataset_path()}grass_mask_estimator_output_50.mat',
         {
             'court_images': court_images,
             'real_grass_masks': grass_masks,
