@@ -108,7 +108,7 @@ def fit_model(model, generator_opt_func, discriminator_opt_func, gan_loss_func, 
                 'generator_opt_func': generator_opt_func,
                 'discriminator_opt_func': discriminator_opt_func}
             utils.save_model(model_components, hist,
-                             f"{utils.get_grass_mask_estimator_model_path()}pix2pix_{len(hist[next(iter(hist))])}.pth")
+                             f"{utils.get_generated_models_path()}pix2pix_{len(hist[next(iter(hist))])}.pth")
 
         if not silent:
             print(f"Epoch {epoch + 1}/{num_of_epochs}: Duration: {epoch_duration:.2f} "
@@ -126,7 +126,7 @@ def fit_model(model, generator_opt_func, discriminator_opt_func, gan_loss_func, 
 
 
 if __name__ == '__main__':
-    model_path = utils.get_grass_mask_estimator_model_path()
+    model_path = utils.get_generated_models_path()
     print('Loading World Cup 2014 dataset')
     data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset.npz')
     court_images = data['court_images']
@@ -155,7 +155,7 @@ if __name__ == '__main__':
         pix2pix.discriminator.parameters(), lr=.0002, betas=(.5, 0.999))
 
     # pix2pix, generator_optimizer, discriminator_optimizer, history = Pix2Pix.load_model(
-    #     f'{utils.get_grass_mask_estimator_model_path()}pix2pix_1.pth',
+    #     f'{utils.get_generated_models_path()}pix2pix_1.pth',
     #                  pix2pix, generator_optimizer, discriminator_optimizer, history=True)
 
     network, generator_optimizer, discriminator_optimizer, history = fit_model(
@@ -174,6 +174,6 @@ if __name__ == '__main__':
         'generator_opt_func': generator_optimizer,
         'discriminator_opt_func': discriminator_optimizer}
     utils.save_model(model_components, history,
-                     f"{utils.get_grass_mask_estimator_model_path()}pix2pix_{len(history[next(iter(history))])}.pth")
+                     f"{utils.get_generated_models_path()}pix2pix_{len(history[next(iter(history))])}.pth")
 
 sys.exit()

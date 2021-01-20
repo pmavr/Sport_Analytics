@@ -107,7 +107,7 @@ def fit_model(model, opt_func, loss_func, train_loader,
                 'model': model,
                 'opt_func': optimizer}
             utils.save_model(model_components, hist,
-                             f"{utils.get_homography_estimator_model_path()}siamese_{len(hist[next(iter(hist))])}.pth")
+                             f"{utils.get_generated_models_path()}siamese_{len(hist[next(iter(hist))])}.pth")
 
         train_loader.shuffle_data()
 
@@ -175,7 +175,7 @@ if __name__ == '__main__':
         lr=.01,
         weight_decay=0.000001)
 
-    # siamese, optimizer, history = Siamese.load_model(f'{utils.get_homography_estimator_model_path()}siamese_400.pth',
+    # siamese, optimizer, history = Siamese.load_model(f'{utils.get_generated_models_path()}siamese_400.pth',
     #                  siamese, optimizer, history=True)
 
     network, optimizer, history = fit_model(
@@ -193,6 +193,6 @@ if __name__ == '__main__':
         'model': network,
         'opt_func': optimizer}
     utils.save_model(model_components, history,
-                     f"{utils.get_homography_estimator_model_path()}siamese_{len(history[next(iter(history))])}.pth")
+                     f"{utils.get_generated_models_path()}siamese_{len(history[next(iter(history))])}.pth")
 
     sys.exit()

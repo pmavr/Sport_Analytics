@@ -48,7 +48,7 @@ if __name__ == '__main__':
     import numpy as np
     from torchvision.transforms import ToTensor, Normalize, Compose, Resize, ToPILImage
 
-    model_path = utils.get_grass_mask_estimator_model_path()
+    model_path = utils.get_generated_models_path()
     print('Loading World Cup 2014 dataset')
     data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset.npz')
     court_images = data['court_images']

@@ -55,7 +55,7 @@ if __name__ == '__main__':
     # _, original_edge_map = cv2.threshold(original_edge_map, 10, 255, cv2.THRESH_BINARY)
 
     estimator = HomographyEstimator(
-        model_filename=f'{utils.get_homography_estimator_model_path()}siamese_10.pth',
+        model_filename=f'{utils.get_generated_models_path()}siamese_10.pth',
         feature_pose_database_filename=f'{utils.get_world_cup_2014_dataset_path()}database_camera_feature_10.mat',
         binary_court_filename=f'{utils.get_world_cup_2014_dataset_path()}worldcup2014.mat')
 

@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     pix2pix = Pix2Pix(is_train=False)
 
-    pix2pix, _, _, _ = Pix2Pix.load_model(f'{utils.get_grass_mask_estimator_model_path()}pix2pix_50.pth', pix2pix)
+    pix2pix, _, _, _ = Pix2Pix.load_model(f'{utils.get_generated_models_path()}pix2pix_50.pth', pix2pix)
 
     court_images, grass_masks, predicted_grass_masks = evaluate_model(
         model=pix2pix,

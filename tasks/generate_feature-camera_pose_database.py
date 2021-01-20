@@ -46,7 +46,7 @@ if __name__ == '__main__':
         Normalize(mean=[0.0188], std=[0.128])])
 
     siamese = Siamese()
-    siamese, optimizer, history = Siamese.load_model(f'{utils.get_homography_estimator_model_path()}siamese_500.pth',
+    siamese, optimizer, history = Siamese.load_model(f'{utils.get_generated_models_path()}siamese_500.pth',
                                                    siamese)
 
     edge_maps = convert_camera_params_to_edge_maps(
