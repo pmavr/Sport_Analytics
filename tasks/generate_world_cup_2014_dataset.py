@@ -153,20 +153,18 @@ if __name__ == '__main__':
     train_dataset = augment_dataset(train_dataset, flip=True)
 
     print('Exporting dataset to files')
-    sio.savemat(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset',
-                {
-                     'court_images': train_dataset['court_images'],
-                     'edge_maps': train_dataset['edge_maps'],
-                     'homographies': train_dataset['homographies'],
-                     'grass_masks': train_dataset['grass_masks']},
-                do_compression=True)
+    np.savez_compressed(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset',
+                        binary_court=train_dataset.get('binary_court'),
+                        court_images=train_dataset.get('court_images'),
+                        edge_maps=train_dataset.get('edge_maps'),
+                        homographies=train_dataset.get('homographies'),
+                        grass_masks=train_dataset.get('grass_masks'))
 
-    sio.savemat(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_test_dataset',
-                {
-                     'court_images': test_dataset['court_images'],
-                     'edge_maps': test_dataset['edge_maps'],
-                     'homographies': test_dataset['homographies'],
-                     'grass_masks': test_dataset['grass_masks']},
-                do_compression=True)
+    np.savez_compressed(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_test_dataset',
+                        binary_court=test_dataset.get('binary_court'),
+                        court_images=test_dataset.get('court_images'),
+                        edge_maps=test_dataset.get('edge_maps'),
+                        homographies=test_dataset.get('homographies'),
+                        grass_masks=test_dataset.get('grass_masks'))
 
     sys.exit()
