@@ -130,7 +130,7 @@ if __name__ == '__main__':
     print('Loading World Cup 2014 dataset')
     data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset.npz')
     court_images = data['court_images']
-    grass_masks = data['grass_masks']*255
+    grass_masks = data['grass_masks']
 
     transform = Compose([
         ToTensor(),
