@@ -128,13 +128,9 @@ def fit_model(model, generator_opt_func, discriminator_opt_func, gan_loss_func, 
 if __name__ == '__main__':
     model_path = utils.get_generated_models_path()
     print('Loading World Cup 2014 dataset')
-    data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset.npz')
-    court_images = data['court_images']
-    grass_masks = data['grass_masks']
-
-    transform = Compose([
-        ToTensor(),
-        Resize((256, 256))])
+    data = np.load(f'{utils.get_world_cup_2014_scc_dataset_path()}grass_mask_estimator_train_dataset.npz')
+    court_images = data['A']
+    grass_masks = data['B']
 
     train_dataset = Pix2PixDataset(
         image_a_data=court_images,
@@ -164,7 +160,7 @@ if __name__ == '__main__':
         gan_loss_func=criterionGAN,
         l1_loss_func=criterionL1,
         train_loader=train_dataset,
-        num_of_epochs=50,
+        num_of_epochs=10,
         num_of_epochs_until_save=20)
         # history=history)
 
@@ -175,4 +171,4 @@ if __name__ == '__main__':
     utils.save_model(model_components, history,
                      f"{utils.get_generated_models_path()}pix2pix_{len(history[next(iter(history))])}.pth")
 
-sys.exit()
+    sys.exit()

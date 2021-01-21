@@ -97,7 +97,7 @@ if __name__ == '__main__':
         image_b_data=grass_masks,
         batch_size=32,
         num_of_batches=128,
-        is_train=False)
+        is_train=True)
 
     for i in range(train_dataset.__len__()):
         x1, x2 = train_dataset[i]

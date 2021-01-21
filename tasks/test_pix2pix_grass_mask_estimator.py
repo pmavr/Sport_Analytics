@@ -61,13 +61,9 @@ if __name__ == '__main__':
     import scipy.io as sio
 
     print('Loading World Cup 2014 dataset')
-    data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_test_dataset.npz')
-    court_images = data['court_images']
-    grass_masks = data['grass_masks']
-
-    transform = Compose([
-        ToTensor(),
-        Resize((256, 256))])
+    data = np.load(f'{utils.get_world_cup_2014_dataset_path()}edge_map_generator_test_dataset.npz')
+    court_images = data['A']
+    grass_masks = data['B']
 
     test_dataset = Pix2PixDataset(
         image_a_data=court_images,
