@@ -9,32 +9,39 @@ import utils
 class Pix2PixDataset(Dataset):
 
     def __init__(self,
-                 court_image_data,
-                 grass_mask_data,
+                 image_a_data,
+                 image_b_data,
                  batch_size,
                  num_of_batches,
                  data_transform,
                  is_train=True):
 
-        self.court_image_data = court_image_data
-        self.grass_mask_data = grass_mask_data
+        self.image_a_data = image_a_data
+        self.image_b_data = image_b_data
         self.batch_size = batch_size
         self.num_of_batches = num_of_batches
         self.data_transform = data_transform
         self.is_train = is_train
 
     def __getitem__(self, index):
+        if self.is_train:
+            return self._get_train_item(index)
+        return self._get_test_item(index)
 
-        court_image = self.court_image_data[index]
-        grass_mask = self.grass_mask_data[index]
+    def _get_train_item(self, index):
+        pass
 
-        court_image = self.data_transform(court_image)
-        court_image = transforms.Normalize(mean=(.5, .5, .5), std=(.5, .5, .5))(court_image)
+    def _get_test_item(self, index):
+        image_a = self.image_a_data[index]
+        image_b = self.image_b_data[index]
 
-        grass_mask = self.data_transform(grass_mask)
-        grass_mask = transforms.Normalize(mean=[.5], std=[.5])(grass_mask)
+        image_a = self.data_transform(image_a)
+        image_a = transforms.Normalize(mean=(.5, .5, .5), std=(.5, .5, .5))(image_a)
 
-        return torch.stack([court_image]), torch.stack([grass_mask])
+        image_b = self.data_transform(image_b)
+        image_b = transforms.Normalize(mean=[.5], std=[.5])(image_b)
+
+        return torch.stack([image_a]), torch.stack([image_b])
 
     def total_dataset_size(self):
         return self.num_of_batches * self.batch_size
@@ -48,19 +55,18 @@ if __name__ == '__main__':
     import numpy as np
     from torchvision.transforms import ToTensor, Normalize, Compose, Resize, ToPILImage
 
-    model_path = utils.get_generated_models_path()
     print('Loading World Cup 2014 dataset')
-    data = np.load(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset.npz')
-    court_images = data['court_images']
-    grass_masks = data['grass_masks']
+    data = np.load(f'{utils.get_world_cup_2014_scc_dataset_path()}grass_mask_estimator_train_dataset.npz')
+    court_images = data['A']
+    grass_masks = data['B']
 
     transform = Compose([
         ToTensor(),
         Resize((256, 256))])
 
     train_dataset = Pix2PixDataset(
-        court_image_data=court_images,
-        grass_mask_data=grass_masks,
+        image_a_data=court_images,
+        image_b_data=grass_masks,
         batch_size=32,
         num_of_batches=128,
         data_transform=transform,

@@ -70,8 +70,8 @@ if __name__ == '__main__':
         Resize((256, 256))])
 
     test_dataset = Pix2PixDataset(
-        court_image_data=court_images,
-        grass_mask_data=grass_masks,
+        image_a_data=court_images,
+        image_b_data=grass_masks,
         batch_size=1,
         num_of_batches=court_images.shape[0],
         data_transform=transform)
