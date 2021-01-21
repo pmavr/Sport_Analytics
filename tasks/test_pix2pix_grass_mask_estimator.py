@@ -74,7 +74,7 @@ if __name__ == '__main__':
         image_b_data=grass_masks,
         batch_size=1,
         num_of_batches=court_images.shape[0],
-        data_transform=transform)
+        is_train=False)
 
     pix2pix = Pix2Pix(is_train=False)
 
