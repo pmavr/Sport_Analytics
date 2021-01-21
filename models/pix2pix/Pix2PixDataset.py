@@ -66,7 +66,8 @@ class Pix2PixDataset(Dataset):
             img_b_out = cv2.flip(img_b, 1)
         return img_a_out, img_b_out
 
-    def _transform_image_pair(self, img_a, img_b):
+    @staticmethod
+    def _transform_image_pair(img_a, img_b):
         img_a_out = transforms.ToTensor()(img_a)
         img_b_out = transforms.ToTensor()(img_b)
 
