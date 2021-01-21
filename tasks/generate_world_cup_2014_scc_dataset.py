@@ -41,10 +41,20 @@ if __name__ == '__main__':
     datasets = load_world_cup_dataset()
 
     print('Exporting dataset to files')
-    np.savez_compressed(f'{utils.get_world_cup_2014_scc_dataset_path()}world_cup_2014_scc_dataset',
-                        edge_map_generator_train_dataset=datasets.get('edge_map_generator_train_dataset'),
-                        edge_map_generator_val_dataset=datasets.get('edge_map_generator_val_dataset'),
-                        edge_map_generator_test_dataset=datasets.get('edge_map_generator_test_dataset'),
-                        grass_mask_estimator_train_dataset=datasets.get('grass_mask_estimator_train_dataset'))
+    np.savez_compressed(f'{utils.get_world_cup_2014_scc_dataset_path()}edge_map_generator_train_dataset',
+                        A=datasets.get('edge_map_generator_train_dataset')['A'],
+                        B=datasets.get('edge_map_generator_train_dataset')['B'])
+
+    np.savez_compressed(f'{utils.get_world_cup_2014_scc_dataset_path()}edge_map_generator_val_dataset',
+                        A=datasets.get('edge_map_generator_val_dataset')['A'],
+                        B=datasets.get('edge_map_generator_val_dataset')['B'])
+
+    np.savez_compressed(f'{utils.get_world_cup_2014_scc_dataset_path()}edge_map_generator_test_dataset',
+                        A=datasets.get('edge_map_generator_test_dataset')['A'],
+                        B=datasets.get('edge_map_generator_test_dataset')['B'])
+
+    np.savez_compressed(f'{utils.get_world_cup_2014_scc_dataset_path()}grass_mask_estimator_train_dataset',
+                        A=datasets.get('grass_mask_estimator_train_dataset')['A'],
+                        B=datasets.get('grass_mask_estimator_train_dataset')['B'])
 
     sys.exit()
