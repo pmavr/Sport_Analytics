@@ -103,8 +103,8 @@ def fit_model(model,
 
         hist['discriminator_real_loss'].append(epoch_discriminator_real_loss)
         hist['discriminator_fake_loss'].append(epoch_discriminator_fake_loss)
-        hist['generator_gan_loss'].append(epoch_generator_gan_loss)
-        hist['generator_l1_loss'].append(epoch_generator_l1_loss)
+        hist['gan_loss'].append(epoch_generator_gan_loss)
+        hist['l1_loss'].append(epoch_generator_l1_loss)
 
         epoch_duration = time() - epoch_start_time
 
@@ -122,8 +122,8 @@ def fit_model(model,
             print(f"Epoch {epoch + 1}/{num_of_epochs}: Duration: {epoch_duration:.2f} "
                   f"| Discr. Real Loss: {hist['discriminator_real_loss'][-1]:.5f} "
                   f"| Discr. Fake Loss: {hist['discriminator_fake_loss'][-1]:.3f} "
-                  f"| Gener. GAN Loss: {hist['generator_gan_loss'][-1]:.3f} "
-                  f"| Gener. L1 Loss: {hist['generator_l1_loss'][-1]:.3f}")
+                  f"| GAN Loss: {hist['gan_loss'][-1]:.3f} "
+                  f"| L1 Loss: {hist['l1_loss'][-1]:.3f}")
         else:
             print('.', end='')
 
