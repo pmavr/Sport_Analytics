@@ -61,7 +61,7 @@ if __name__ == '__main__':
     import scipy.io as sio
 
     print('Loading World Cup 2014 dataset')
-    data = np.load(f'{utils.get_world_cup_2014_dataset_path()}edge_map_generator_test_dataset.npz')
+    data = np.load(f'{utils.get_world_cup_2014_scc_dataset_path()}edge_map_generator_test_dataset.npz')
     court_images = data['A']
     grass_masks = data['B']
 
@@ -74,19 +74,19 @@ if __name__ == '__main__':
 
     pix2pix = Pix2Pix(is_train=False)
 
-    pix2pix, _, _, _ = Pix2Pix.load_model(f'{utils.get_generated_models_path()}pix2pix_50.pth', pix2pix)
+    pix2pix, _, _, _, _, _ = Pix2Pix.load_model(f'{utils.get_generated_models_path()}grass_mask_estimator_200.pth', pix2pix)
 
     court_images, grass_masks, predicted_grass_masks = evaluate_model(
         model=pix2pix,
         test_loader=test_dataset)
 
-    sio.savemat(
-        f'{utils.get_world_cup_2014_dataset_path()}grass_mask_estimator_output_50.mat',
-        {
-            'court_images': court_images,
-            'real_grass_masks': grass_masks,
-            'fake_grass_masks': predicted_grass_masks},
-        do_compression=True)
+    # sio.savemat(
+    #     f'{utils.get_world_cup_2014_dataset_path()}grass_mask_estimator_output_50.mat',
+    #     {
+    #         'court_images': court_images,
+    #         'real_grass_masks': grass_masks,
+    #         'fake_grass_masks': predicted_grass_masks},
+    #     do_compression=True)
 
     save_grass_mask_estimator_output_images(court_images, grass_masks, predicted_grass_masks)
 

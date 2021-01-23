@@ -73,6 +73,8 @@ class Pix2PixDataset(Dataset):
 
         img_a_out = transforms.Normalize(mean=(.5, .5, .5), std=(.5, .5, .5))(img_a_out)
         img_b_out = transforms.Normalize(mean=[.5], std=[.5])(img_b_out)
+        img_b_out = img_b_out[0, ...] * 0.299 + img_b_out[1, ...] * 0.587 + img_b_out[2, ...] * 0.114
+        img_b_out = img_b_out.unsqueeze(0)
 
         return torch.stack([img_a_out]), torch.stack([img_b_out])
 

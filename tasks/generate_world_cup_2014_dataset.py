@@ -68,23 +68,23 @@ def augment_dataset(image_dataset, flip=True):
     augm_court_images = np.zeros((num_of_augm_images, img_h, img_w, 3), dtype=np.uint8)
     augm_edge_maps = np.zeros((num_of_augm_images, img_h, img_w, 3), dtype=np.uint8)
     augm_homographies = np.zeros((num_of_augm_images, 3, 3), dtype=np.float64)
-    augm_grass_masks = np.zeros((num_of_augm_images, img_h, img_w), dtype=np.uint8)
+    augm_grass_masks = np.zeros((num_of_augm_images, img_h, img_w, 1), dtype=np.uint8)
 
     for i in range(num_of_images):
-        flipped_court_image = cv2.flip(court_images[i], 1)
-        flipped_edge_map = cv2.flip(edge_maps[i], 1)
-        flipped_grass_mask = cv2.flip(grass_masks[i], 1)
+        flipped_court_image = np.fliplr(court_images[i])
+        flipped_edge_map = np.fliplr(edge_maps[i])
+        flipped_grass_mask = np.fliplr(grass_masks[i])
         flipped_homography = get_horizontal_flip_homography(court_images[i], homographies[i])
 
         augm_court_images[i, :, :, :] = court_images[i]
         augm_edge_maps[i, :, :, :] = edge_maps[i]
         augm_homographies[i, :, :] = homographies[i]
-        augm_grass_masks[i, :, :] = grass_masks[i]
+        augm_grass_masks[i, :, :, :] = grass_masks[i]
 
         augm_court_images[num_of_images + i, :, :, :] = flipped_court_image
         augm_edge_maps[num_of_images + i, :, :, :] = flipped_edge_map
         augm_homographies[num_of_images + i, :, :] = flipped_homography
-        augm_grass_masks[num_of_images + i, :, :] = flipped_grass_mask
+        augm_grass_masks[num_of_images + i, :, :, :] = flipped_grass_mask
 
     dataset = {
         'binary_court': image_dataset['binary_court'],
@@ -116,6 +116,17 @@ def load_world_cup_dataset():
             grass_mask = load_element_from_mat_(f"{path.get('path')}{i}_grass_gt.mat", 'grass')
             grass_mask *= 255
             edge_map = generate_edge_map_from_(court_image, homography, binary_court)
+
+            if path.get('key') == 'train':
+                court_image = cv2.resize(court_image, (300, 300))
+                edge_map = cv2.resize(edge_map, (300, 300))
+                grass_mask = cv2.resize(grass_mask, (300, 300))
+                grass_mask = np.expand_dims(grass_mask, axis=-1)
+            else:
+                court_image = cv2.resize(court_image, (256, 256))
+                edge_map = cv2.resize(edge_map, (256, 256))
+                grass_mask = cv2.resize(grass_mask, (256, 256))
+                grass_mask = np.expand_dims(grass_mask, axis=-1)
 
             court_images.append(court_image)
             homography_matrices.append(homography)
@@ -150,7 +161,7 @@ if __name__ == '__main__':
     print('Loading World Cup 2014 dataset')
     train_dataset, test_dataset = load_world_cup_dataset()
 
-    train_dataset = augment_dataset(train_dataset, flip=True)
+    # train_dataset = augment_dataset(train_dataset, flip=True)
 
     print('Exporting dataset to files')
     np.savez_compressed(f'{utils.get_world_cup_2014_dataset_path()}world_cup_2014_train_dataset',
