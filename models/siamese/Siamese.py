@@ -55,10 +55,11 @@ class Siamese(Module):
         return feat
 
     @staticmethod
-    def load_model(filename, model, optimizer=None, history=None):
+    def load_model(filename, model=None, optimizer=None, history=None):
         """Load trained model along with its optimizer and training, plottable history."""
         model_components = torch.load(filename)
-        model.load_state_dict(model_components['model'])
+        if model:
+            model.load_state_dict(model_components['model'])
         if optimizer:
             optimizer.load_state_dict(model_components['optimizer'])
         if history:
