@@ -174,17 +174,25 @@ class Pix2Pix(nn.Module):
         return fake_output
 
     @staticmethod
-    def load_model(filename, model, gen_optimizer=None, discr_optimizer=None, history=None):
+    def load_model(filename, model=None,
+                   gen_optimizer=None, discr_optimizer=None,
+                   gen_sched=None, discr_sched=None,
+                   history=None):
         """Load trained model along with its optimizer and training, plottable history."""
         model_components = torch.load(filename)
-        model.load_state_dict(model_components['model'])
+        if model:
+            model.load_state_dict(model_components['model'])
         if gen_optimizer:
             gen_optimizer.load_state_dict(model_components['generator_opt_func'])
+        if gen_sched:
+            gen_sched.load_state_dict(model_components['generator_sched_func'])
         if discr_optimizer:
             discr_optimizer.load_state_dict(model_components['discriminator_opt_func'])
+        if discr_sched:
+            discr_sched.load_state_dict(model_components['discriminator_sched_func'])
         if history:
             history = model_components['history']
-        return model, gen_optimizer, discr_optimizer, history
+        return model, gen_optimizer, discr_optimizer, gen_sched, discr_sched, history
 
 
 class UnetGenerator(nn.Module):

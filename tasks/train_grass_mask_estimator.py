@@ -5,10 +5,12 @@ import numpy as np
 import torch
 from torchvision.transforms import ToTensor, Resize, Compose
 import torch.backends.cudnn as cudnn
+from torch.optim.lr_scheduler import LambdaLR
 
 from models.pix2pix.Pix2Pix import Pix2Pix
 from models.pix2pix.Pix2PixDataset import Pix2PixDataset
 from models.pix2pix.GANLoss import GANLoss
+from models.pix2pix.LearningPolicy import LRPolicy
 import utils
 
 
@@ -27,8 +29,12 @@ def optimizer_to(optim, device):
                         subparam._grad.data = subparam._grad.data.to(device)
 
 
-def fit_model(model, generator_opt_func, discriminator_opt_func, gan_loss_func, l1_loss_func,
+def fit_model(model,
+              generator_opt_func, discriminator_opt_func,
+              gan_loss_func, l1_loss_func,
+              generator_sched_func, discriminator_sched_func,
               train_loader, num_of_epochs, num_of_epochs_until_save, silent=False, history=None):
+
     device = 'cpu'
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -106,9 +112,11 @@ def fit_model(model, generator_opt_func, discriminator_opt_func, gan_loss_func, 
             model_components = {
                 'model': model,
                 'generator_opt_func': generator_opt_func,
-                'discriminator_opt_func': discriminator_opt_func}
+                'discriminator_opt_func': discriminator_opt_func,
+                'generator_sched_func': generator_sched_func,
+                'discriminator_sched_func': discriminator_sched_func}
             utils.save_model(model_components, hist,
-                             f"{utils.get_generated_models_path()}pix2pix_{len(hist[next(iter(hist))])}.pth")
+                             f"{utils.get_generated_models_path()}grass_mask_estimator_{len(hist[next(iter(hist))])}.pth")
 
         if not silent:
             print(f"Epoch {epoch + 1}/{num_of_epochs}: Duration: {epoch_duration:.2f} "
@@ -119,10 +127,14 @@ def fit_model(model, generator_opt_func, discriminator_opt_func, gan_loss_func, 
         else:
             print('.', end='')
 
+        discriminator_sched_func.step()
+        generator_sched_func.step()
+
     training_time = time() - start_time
     print('\nTotal training time: {:.2f}s'.format(training_time))
 
-    return model, generator_opt_func, discriminator_opt_func, hist
+    return model, generator_opt_func, discriminator_opt_func,\
+           generator_sched_func, discriminator_sched_func, hist
 
 
 if __name__ == '__main__':
@@ -149,26 +161,36 @@ if __name__ == '__main__':
     discriminator_optimizer = torch.optim.Adam(
         pix2pix.discriminator.parameters(), lr=.0002, betas=(.5, 0.999))
 
-    # pix2pix, generator_optimizer, discriminator_optimizer, history = Pix2Pix.load_model(
-    #     f'{utils.get_generated_models_path()}pix2pix_1.pth',
-    #                  pix2pix, generator_optimizer, discriminator_optimizer, history=True)
+    generator_scheduler = LambdaLR(generator_optimizer, LRPolicy(1, 100, 100))
+    discriminator_scheduler = LambdaLR(discriminator_optimizer, LRPolicy(1, 100, 100))
 
-    network, generator_optimizer, discriminator_optimizer, history = fit_model(
+    # pix2pix, generator_optimizer, discriminator_optimizer, generator_scheduler, discriminator_scheduler, history = Pix2Pix.load_model(
+    #     f'{utils.get_generated_models_path()}grass_mask_estimator_100.pth',
+    #     pix2pix, generator_optimizer, discriminator_optimizer,
+    #     generator_scheduler, discriminator_scheduler, history=True)
+
+    network, generator_optimizer, discriminator_optimizer, generator_scheduler, discriminator_scheduler, history = fit_model(
         model=pix2pix,
         generator_opt_func=generator_optimizer,
         discriminator_opt_func=discriminator_optimizer,
         gan_loss_func=criterionGAN,
         l1_loss_func=criterionL1,
         train_loader=train_dataset,
-        num_of_epochs=10,
-        num_of_epochs_until_save=20)
+        generator_sched_func=generator_scheduler,
+        discriminator_sched_func=discriminator_scheduler,
+        num_of_epochs=100,
+        num_of_epochs_until_save=50)
         # history=history)
 
     model_components = {
         'model': network,
         'generator_opt_func': generator_optimizer,
-        'discriminator_opt_func': discriminator_optimizer}
+        'discriminator_opt_func': discriminator_optimizer,
+        'generator_sched_func': generator_scheduler,
+        'discriminator_sched_func': discriminator_scheduler}
+    filename = f"{utils.get_generated_models_path()}grass_mask_estimator_{len(history[next(iter(history))])}.pth"
     utils.save_model(model_components, history,
-                     f"{utils.get_generated_models_path()}pix2pix_{len(history[next(iter(history))])}.pth")
+                     filename)
+    print(f'Saved model at {filename}')
 
     sys.exit()
