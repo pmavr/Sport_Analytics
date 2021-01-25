@@ -68,19 +68,6 @@ def get_norm_layer(norm_type='instance'):
     return norm_layer
 
 
-def get_scheduler(optimizer):
-    niter = 100
-    niter_decay = 100
-    epoch_count = 1
-
-    def lambda_rule(epoch):
-        lr_l = 1.0 - max(0, epoch + 1 + epoch_count - niter) / float(niter_decay + 1)
-        return lr_l
-    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
-
-    return scheduler
-
-
 class Pix2Pix(nn.Module):
 
     def __init__(self, is_train=True):
@@ -88,14 +75,24 @@ class Pix2Pix(nn.Module):
         self.is_train = is_train
         self.input_shape = (256, 256, 3)
         self.lambda_a = 100.
+        input_nc = 3
+        output_nc = 1
+        ngf = 64
+        ndf = 64
+        norm = 'batch'
+        no_dropout = False
+        init_type = 'normal'
+        use_sigmoid = True
+        n_layers_D = 3
+        pool_size = 0
 
         self.generator = self._define_generator(
-            input_nc=3, output_nc=1, ngf=64, norm='batch', use_dropout=True, init_type='normal')
+            input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm=norm, use_dropout=not no_dropout, init_type=init_type)
 
         self.discriminator = self._define_discriminator(
-            input_nc=4, ndf=64, n_layers_D=3, norm='batch', use_sigmoid=True, init_type='normal')
+            input_nc=input_nc + output_nc, ndf=ndf, n_layers_D=n_layers_D, norm=norm, use_sigmoid=use_sigmoid, init_type=init_type)
 
-        self.fake_AB_pool = ImagePool(pool_size=0)
+        self.fake_AB_pool = ImagePool(pool_size=pool_size)
 
 
         print('---------- Networks initialized -------------')
