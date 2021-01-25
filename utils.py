@@ -1,9 +1,11 @@
 import cv2
 import torch
+import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
-import pickle
-import numpy as np
+import seaborn as sns
+sns.set()
+
 
 
 def get_project_root():
@@ -77,3 +79,46 @@ def video_player(video_file):
     vs.release()
     cv2.destroyAllWindows()
 
+
+def plot_siamese_results(history, info):
+
+    num_of_epochs = len(history[next(iter(history))])
+    epochs_range = [i for i in range(num_of_epochs)]
+
+    fig, (loss_plot, distances, dist_ratio) = plt.subplots(1, 3, figsize=(10, 4))
+
+    loss_plot.plot(epochs_range, history['train_loss'], color='red', label='train loss')
+    loss_plot.set_title('Epochs - Loss / {}'.format(info))
+    loss_plot.legend()
+
+    distances.plot(epochs_range, history['positive_distance'], color='red', label='positive dist.')
+    distances.plot(epochs_range, history['negative_distance'], color='green', label='negative dist.')
+    distances.set_title('Epochs - Pos/Neg distance / {}'.format(info))
+    distances.legend()
+
+    dist_ratio.plot(epochs_range, history['distance_ratio'], color='red', label='distance ratio')
+    dist_ratio.set_title('Epochs - Distance ratio / {}'.format(info))
+    dist_ratio.legend()
+
+    plt.show()
+
+
+def plot_pix2pix_results(history, info):
+
+    num_of_epochs = len(history[next(iter(history))])
+    epochs_range = [i for i in range(num_of_epochs)]
+
+    fig, (discriminator_loss, generator_loss) = plt.subplots(1, 2, figsize=(10, 4))
+
+    discriminator_loss.plot(epochs_range, history['discriminator_real_loss'], color='green', label='discr. real loss')
+    discriminator_loss.plot(epochs_range, history['discriminator_fake_loss'], color='red', label='discr. fake loss')
+    discriminator_loss.set_title('Discriminator Real/Fake Loss')
+    discriminator_loss.legend()
+
+    generator_loss.plot(epochs_range, history['generator_gan_loss'], color='red', label='GAN loss')
+    generator_loss.plot(epochs_range, history['generator_l1_loss'], color='green', label='L1 loss')
+    generator_loss.set_title('GAN/L1 Loss')
+    generator_loss.legend()
+
+    plt.title(info)
+    plt.show()
