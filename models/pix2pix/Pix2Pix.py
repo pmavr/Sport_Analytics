@@ -137,31 +137,48 @@ class Pix2Pix(nn.Module):
         real_output = Variable(output_)
         return real_output, fake_output
 
-    def backward_discriminator(self, real_input, real_output, fake_output, gan_criterion):
+    def optimize_parameters(self, real_input, real_output, fake_output,
+                            discr_opt_func, gen_opt_func, gan_loss_func, l1_loss_func):
+
+        discr_opt_func.zero_grad()
+        discr_loss_real, discr_loss_fake = self._backward_discriminator(
+            real_input=real_input, real_output=real_output, fake_output=fake_output,
+            gan_loss_func=gan_loss_func)
+        discr_opt_func.step()
+
+        gen_opt_func.zero_grad()
+        gen_gan_loss, gen_l1_loss = self._backward_generator(
+            real_input=real_input, real_output=real_output, fake_output=fake_output,
+            gan_loss_func=gan_loss_func, l1_loss_func=l1_loss_func)
+        gen_opt_func.step()
+
+        return discr_loss_real, discr_loss_fake, gen_gan_loss, gen_l1_loss
+
+    def _backward_discriminator(self, real_input, real_output, fake_output, gan_loss_func):
         # Fake
         fake_AB = self.fake_AB_pool.query(torch.cat((real_input, fake_output), 1).data)
         pred_fake = self.discriminator(fake_AB.detach())
-        loss_discriminator_fake = gan_criterion(input=pred_fake, target_is_real=False)
+        discr_loss_fake = gan_loss_func(input=pred_fake, target_is_real=False)
 
         # Real
         real_AB = torch.cat((real_input, real_output), 1)
         pred_real = self.discriminator(real_AB)
-        loss_discriminator_real = gan_criterion(input=pred_real, target_is_real=True)
+        discr_loss_real = gan_loss_func(input=pred_real, target_is_real=True)
 
         # Combined loss
-        loss_discriminator = (loss_discriminator_fake + loss_discriminator_real) * 0.5
+        loss_discriminator = (discr_loss_fake + discr_loss_real) * 0.5
         loss_discriminator.backward()
 
-        return loss_discriminator_real, loss_discriminator_fake
+        return discr_loss_real, discr_loss_fake
 
-    def backward_generator(self, real_input, real_output, fake_output, gan_criterion, l1_criterion):
+    def _backward_generator(self, real_input, real_output, fake_output, gan_loss_func, l1_loss_func):
         # First, G(A) should fake the discriminator
         fake_AB = torch.cat((real_input, fake_output), 1)
         pred_fake = self.discriminator(fake_AB)
-        loss_generator_gan = gan_criterion(pred_fake, True)
+        loss_generator_gan = gan_loss_func(pred_fake, True)
 
         # Second, G(A) = B
-        loss_generator_l1 = l1_criterion(fake_output, real_output) * self.lambda_a
+        loss_generator_l1 = l1_loss_func(fake_output, real_output) * self.lambda_a
 
         loss_generator = loss_generator_gan + loss_generator_l1
         loss_generator.backward()

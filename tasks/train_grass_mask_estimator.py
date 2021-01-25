@@ -79,22 +79,20 @@ def fit_model(model,
 
             real_grass_mask, fake_grass_mask = model(court_image, grass_mask)
 
-            discriminator_opt_func.zero_grad()
-            discriminator_real_loss, discriminator_fake_loss = model.backward_discriminator(
-                real_input=court_image, real_output=real_grass_mask, fake_output=fake_grass_mask,
-                gan_criterion=gan_loss_func)
-            discriminator_opt_func.step()
+            discr_real_loss, discr_fake_loss, gen_gan_loss, gen_l1_loss = model.optimize_parameters(
+                real_input=court_image,
+                real_output=real_grass_mask,
+                fake_output=fake_grass_mask,
+                discr_opt_func=discriminator_opt_func,
+                gen_opt_func=generator_opt_func,
+                gan_loss_func=gan_loss_func,
+                l1_loss_func=l1_loss_func
+            )
 
-            generator_opt_func.zero_grad()
-            generator_gan_loss, generator_l1_loss = model.backward_generator(
-                real_input=court_image, real_output=real_grass_mask, fake_output=fake_grass_mask,
-                gan_criterion=gan_loss_func, l1_criterion=l1_loss_func)
-            generator_opt_func.step()
-
-            epoch_discriminator_real_loss += discriminator_real_loss.item()
-            epoch_discriminator_fake_loss += discriminator_fake_loss.item()
-            epoch_generator_gan_loss += generator_gan_loss.item()
-            epoch_generator_l1_loss += generator_l1_loss.item()
+            epoch_discriminator_real_loss += discr_real_loss.item()
+            epoch_discriminator_fake_loss += discr_fake_loss.item()
+            epoch_generator_gan_loss += gen_gan_loss.item()
+            epoch_generator_l1_loss += gen_l1_loss.item()
 
         epoch_discriminator_real_loss /= epoch_train_data
         epoch_discriminator_fake_loss /= epoch_train_data
@@ -122,8 +120,8 @@ def fit_model(model,
             print(f"Epoch {epoch + 1}/{num_of_epochs}: Duration: {epoch_duration:.2f} "
                   f"| Discr. Real Loss: {hist['discriminator_real_loss'][-1]:.5f} "
                   f"| Discr. Fake Loss: {hist['discriminator_fake_loss'][-1]:.3f} "
-                  f"| GAN Loss: {hist['gan_loss'][-1]:.3f} "
-                  f"| L1 Loss: {hist['l1_loss'][-1]:.3f}")
+                  f"| GAN Loss: {hist['generator_gan_loss'][-1]:.3f} "
+                  f"| L1 Loss: {hist['generator_l1_loss'][-1]:.3f}")
         else:
             print('.', end='')
 
@@ -144,6 +142,13 @@ if __name__ == '__main__':
     court_images = data['A']
     grass_masks = data['B']
 
+    use_lsgan= True
+    lr = .0002
+    beta1 = .5
+    epoch_count = 1
+    niter = 100
+    niter_decay = 100
+
     train_dataset = Pix2PixDataset(
         image_a_data=court_images,
         image_b_data=grass_masks,
@@ -153,16 +158,16 @@ if __name__ == '__main__':
 
     pix2pix = Pix2Pix(is_train=True)
 
-    criterionGAN = GANLoss(use_lsgan=False, tensor=torch.Tensor)
+    criterionGAN = GANLoss(use_lsgan=not use_lsgan, tensor=torch.Tensor)
     criterionL1 = torch.nn.L1Loss()
 
     generator_optimizer = torch.optim.Adam(
-        pix2pix.generator.parameters(), lr=.0002, betas=(.5, 0.999))
+        pix2pix.generator.parameters(), lr=lr, betas=(beta1, 0.999))
     discriminator_optimizer = torch.optim.Adam(
-        pix2pix.discriminator.parameters(), lr=.0002, betas=(.5, 0.999))
+        pix2pix.discriminator.parameters(), lr=lr, betas=(beta1, 0.999))
 
-    generator_scheduler = LambdaLR(generator_optimizer, LRPolicy(1, 100, 100))
-    discriminator_scheduler = LambdaLR(discriminator_optimizer, LRPolicy(1, 100, 100))
+    generator_scheduler = LambdaLR(generator_optimizer, LRPolicy(epoch_count, niter, niter_decay))
+    discriminator_scheduler = LambdaLR(discriminator_optimizer, LRPolicy(epoch_count, niter, niter_decay))
 
     # pix2pix, generator_optimizer, discriminator_optimizer, generator_scheduler, discriminator_scheduler, history = Pix2Pix.load_model(
     #     f'{utils.get_generated_models_path()}grass_mask_estimator_100.pth',
@@ -178,7 +183,7 @@ if __name__ == '__main__':
         train_loader=train_dataset,
         generator_sched_func=generator_scheduler,
         discriminator_sched_func=discriminator_scheduler,
-        num_of_epochs=100,
+        num_of_epochs=200,
         num_of_epochs_until_save=50)
         # history=history)
 
