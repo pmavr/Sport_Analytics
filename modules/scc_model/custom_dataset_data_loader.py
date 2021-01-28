@@ -1,11 +1,11 @@
 import torch.utils.data
-from base_data_loader import BaseDataLoader
+from modules.scc_model.base_data_loader import BaseDataLoader
 
 
 def CreateDataset(opt):
     dataset = None
     if opt.dataset_mode == 'aligned':
-        from aligned_dataset import AlignedDataset
+        from modules.scc_model.aligned_dataset import AlignedDataset
         dataset = AlignedDataset()
     elif opt.dataset_mode == 'two_aligned':
         from two_aligned_dataset import TwoAlignedDataset
