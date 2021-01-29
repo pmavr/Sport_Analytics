@@ -1,5 +1,5 @@
 # two aligned dataset
-from aligned_dataset import AlignedDataset
+from models.two_pix2pix.data.aligned_dataset import AlignedDataset
 import random
 
 class TwoAlignedDataset:

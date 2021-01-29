@@ -3,7 +3,7 @@ import numpy as np
 class opt:
 
     def __init__(self):
-        self.isTrain = False
+        self.isTrain = True
         self.input_shape = (256, 256, 3)
         self.lambda_a = 100.
         self.input_nc = 3
@@ -22,26 +22,28 @@ class opt:
         self.epoch_count = 1
         self.niter = 100
         self.niter_decay = 100
-        self.model = 'pix2pix'
+        self.model = 'two_pix2pix'
+        # self.model = 'pix2pix'
         self.print_freq = 100
         self.batchSize = 1
         self.display_id = 1
         self.save_latest_freq = 5000
-        self.save_epoch_freq = 100
-        self.dataset_mode = 'aligned'
+        self.save_epoch_freq = 50
+        self.dataset_mode = 'two_aligned'
+        # self.dataset_mode = 'aligned'
         self.phase1 = 'grass_mask_estimator_train_dataset'
         self.phase2 = 'edge_map_generator_train_dataset'
-        self.phase = 'edge_map_generator_test_dataset'
+        self.phase = 'grass_mask_estimator_train_dataset'
         self.dataroot = '/home/panagiotis/dev/projects/Python_Projects/Sport_Analysis/datasets/world_cup_2014_scc/'
         self.resize_or_crop = 'resize_and_crop'
         self.serial_batches = False
         self.max_dataset_size = np.inf
         self.gpu_ids = [0]
-        self.checkpoints_dir = '/home/panagiotis/dev/projects/Python_Projects/Sport_Analysis/modules/scc_model/checkpoints_dir'
+        self.checkpoints_dir = '/modules/scc_model/checkpoints_dir'
         self.name = 'soccer_seg_detection_pix2pix'
         self.joint_train = 0
         self.which_direction = 'AtoB'
-        self.which_epoch = '100'
+        self.which_epoch = 'latest'
         self.which_model_netD = 'basic'
         self.which_model_netG = 'unet_256'
         self.lr_policy = 'lambda'
@@ -49,7 +51,4 @@ class opt:
         self.fineSize = 256
         self.no_flip = False
         self.lambda_A = 100.
-        self.how_many = 186
-        self.results_dir = '/home/panagiotis/dev/projects/Python_Projects/Sport_Analysis/modules/scc_model/results'
-        self.display_winsize = 256
-        self.aspect_ratio = 1.
+        self.continue_train = False

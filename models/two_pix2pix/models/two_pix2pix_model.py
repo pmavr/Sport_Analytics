@@ -5,7 +5,7 @@ from collections import OrderedDict
 from torch.autograd import Variable
 import utils as util
 # from models.pix2pix.ImagePool import ImagePool
-from .pix2pix_model import Pix2PixModel
+from models.two_pix2pix.models.pix2pix_model import Pix2PixModel
 import networks
 
 
@@ -33,10 +33,10 @@ class TwoPix2PixModel:
             self.detection_GAN = Pix2PixModel()
             self.detection_GAN.initialize(opt)
         else:
-            self.seg_netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf,                
-                                      opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
-            self.detec_netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf,                
-                                      opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)            
+            self.seg_netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf,
+                                              opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
+            self.detec_netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf,
+                                                opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
             self.load_network(self.seg_netG, 'G', opt.which_epoch, 'seg')
             self.load_network(self.detec_netG, 'G', opt.which_epoch, 'detec')
             print('Warning: continue_train is not supported')

@@ -4,8 +4,8 @@ from collections import OrderedDict
 from torch.autograd import Variable
 import utils as util
 from image_pool import ImagePool
-from .base_model import BaseModel
-from . import networks
+from models.two_pix2pix.models.base_model import BaseModel
+from models.two_pix2pix.models import networks
 from models.pix2pix.LearningPolicy import LRPolicy
 from torch.optim.lr_scheduler import LambdaLR
 
