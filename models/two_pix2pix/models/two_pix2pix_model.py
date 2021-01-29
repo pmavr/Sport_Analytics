@@ -6,7 +6,7 @@ from torch.autograd import Variable
 import utils as util
 # from models.pix2pix.ImagePool import ImagePool
 from models.two_pix2pix.models.pix2pix_model import Pix2PixModel
-import networks
+import models.two_pix2pix.models.networks as networks
 
 
 class TwoPix2PixModel:

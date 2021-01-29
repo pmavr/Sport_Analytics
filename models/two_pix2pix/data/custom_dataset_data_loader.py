@@ -1,14 +1,14 @@
 import torch.utils.data
-from modules.scc_model.base_data_loader import BaseDataLoader
+from models.two_pix2pix.data.base_data_loader import BaseDataLoader
 
 
 def CreateDataset(opt):
     dataset = None
     if opt.dataset_mode == 'aligned':
-        from modules.scc_model.aligned_dataset import AlignedDataset
+        from models.two_pix2pix.data.aligned_dataset import AlignedDataset
         dataset = AlignedDataset()
     elif opt.dataset_mode == 'two_aligned':
-        from two_aligned_dataset import TwoAlignedDataset
+        from models.two_pix2pix.data.two_aligned_dataset import TwoAlignedDataset
         dataset = TwoAlignedDataset()
     else:
         raise ValueError("Dataset [%s] not recognized." % opt.dataset_mode)

@@ -2,8 +2,8 @@ import os.path
 import random
 import torchvision.transforms as transforms
 import torch
-from modules.scc_model.base_dataset import BaseDataset
-from modules.scc_model.image_folder import make_dataset
+from models.two_pix2pix.data.base_dataset import BaseDataset
+from models.two_pix2pix.data.image_folder import make_dataset
 from PIL import Image
 import utils
 

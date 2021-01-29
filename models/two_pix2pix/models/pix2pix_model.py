@@ -3,7 +3,7 @@ import torch
 from collections import OrderedDict
 from torch.autograd import Variable
 import utils as util
-from image_pool import ImagePool
+from .image_pool import ImagePool
 from models.two_pix2pix.models.base_model import BaseModel
 from models.two_pix2pix.models import networks
 from models.pix2pix.LearningPolicy import LRPolicy
