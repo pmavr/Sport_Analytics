@@ -1,9 +1,12 @@
+import os
 import cv2
 import torch
 import numpy as np
+from PIL import Image
 from pathlib import Path
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pickle
 sns.set()
 
 
@@ -35,6 +38,24 @@ def save_model(model_components, history, filename):
         state[key] = component.state_dict()
     state['history'] = history
     torch.save(state, filename)
+
+
+def load_pickle_file(filename):
+    data = []
+    with open(filename, 'rb') as file:
+        while True:
+            try:
+                data.append(pickle.load(file))
+            except EOFError:
+                break
+        file.close()
+        return data
+
+
+def save_to_pickle_file(data, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(data, f)
+        f.close()
 
 
 def show_image(img_list, msg_list=None):
@@ -122,3 +143,47 @@ def plot_pix2pix_results(history, info):
 
     plt.title(info)
     plt.show()
+
+
+def tensor2im(image_tensor, imtype=np.uint8):
+    image_numpy = image_tensor[0].cpu().float().numpy()
+    if image_numpy.shape[0] == 1:
+        image_numpy = np.tile(image_numpy, (3, 1, 1))
+    image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0
+    return image_numpy.astype(imtype)
+
+
+def save_image(image_numpy, image_path):
+    image_pil = Image.fromarray(image_numpy)
+    image_pil.save(image_path)
+
+
+def mkdirs(paths):
+    if isinstance(paths, list) and not isinstance(paths, str):
+        for path in paths:
+            mkdir(path)
+    else:
+        mkdir(paths)
+
+
+def mkdir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def save_image(image_numpy, image_path):
+    image_pil = Image.fromarray(image_numpy)
+    image_pil.save(image_path)
+
+
+def mkdirs(paths):
+    if isinstance(paths, list) and not isinstance(paths, str):
+        for path in paths:
+            mkdir(path)
+    else:
+        mkdir(paths)
+
+
+def mkdir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
