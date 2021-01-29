@@ -28,7 +28,7 @@ class opt:
         self.batchSize = 1
         self.display_id = 1
         self.save_latest_freq = 5000
-        self.save_epoch_freq = 100
+        self.save_epoch_freq = 50
         # self.dataset_mode = 'two_aligned'
         self.dataset_mode = 'aligned'
         self.phase1 = 'grass_mask_estimator_train_dataset'

@@ -41,7 +41,7 @@ class opt:
         self.name = 'soccer_seg_detection_pix2pix'
         self.joint_train = 0
         self.which_direction = 'AtoB'
-        self.which_epoch = 'latest'
+        self.which_epoch = '100'
         self.which_model_netD = 'basic'
         self.which_model_netG = 'unet_256'
         self.lr_policy = 'lambda'

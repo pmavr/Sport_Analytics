@@ -1,7 +1,7 @@
 import os
 from test_options import opt
 from data_loader import CreateDataLoader
-from modules.scc_model.models import create_model
+from modules.scc_model.pix2pix_model import Pix2PixModel
 import myhtml
 from visualizer import Visualizer
 
@@ -14,7 +14,10 @@ opt.continue_train = False
 
 data_loader = CreateDataLoader(opt)
 dataset = data_loader.load_data()
-model = create_model(opt)
+model = Pix2PixModel()
+model.initialize(opt)
+print("model [%s] was created" % (model.name()))
+
 visualizer = Visualizer(opt)
 # create website
 web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
